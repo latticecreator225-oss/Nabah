@@ -1,0 +1,53 @@
+{
+  "summary": "Hadiya iteration 4 — Hijri-highlight engine + TasbeehSheet wake-lock fix + home entrance polish. Backend: 22/22 PASS (100%). All 8 specific Hijri days verified end-to-end: ashura/tasua/arafah/eid_adha/laylat_al_qadr (odd & even)/mid_shaban/white_days. Payload schema {id, rank, title, subtitle, ar, body, source, cta} is complete on every match. Odd vs even Ramadan night ranks correctly differentiate (GREATEST OF NIGHTS vs LAST TEN). All 10 regression endpoints from iter3 still pass. Frontend: TasbeehSheet opens cleanly and closes with ZERO 'wake lock not activated' errors in console (verified with explicit filter on 'wake'/'keepawake' strings). SunnahSheet → Daily Revival tab renders the gold-bordered HighlightBanner at the very top with testID='hijri-highlight-tasua' (today is 9 Muharram 1448 — Tasu'a), showing rank chip ('TASU'A — THE EVE'), Arabic monogram (تَاسُوعَاء), title ('Tomorrow, the fast of Moses'), subtitle ('9 Muharram'), body, source ('— Sahih Muslim 1134'), and CTA ('PREPARE TO FAST ›') — banner sits above 'Peace upon you, Yusuf.' greeting as specified. Home entrance is smooth (no jank, no red screens); next-prayer card glow visible on the right side. Single pre-existing console error: react-native-svg 'transform-origin' DOM warning (library-level, carried over from iter3 — not Hadiya code).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "react-native-svg transform-origin", "issue": "Console error: 'Invalid DOM property transform-origin. Did you mean transformOrigin?' — emitted by react-native-svg on web (likely QiblaSheet SVG). Library-level, not Hadiya code. Carried over from iter3. Safe to ignore on native."},
+      {"component": "TouchableWithoutFeedback (deprecated)", "issue": "Still warning on web — likely from /app/frontend/src/components/Sheet.tsx backdrop. Carried over from iter2/iter3."},
+      {"component": "Animated useNativeDriver", "issue": "Repeated web warning '`useNativeDriver` is not supported because the native animated module is missing' — affects new HighlightBanner animation (opacity + slide) and home entrance fade+slide animation. Web-only fallback; harmless on native."},
+      {"component": "expo-notifications listener on web", "issue": "Repeated warning '[expo-notifications] Listening to push token changes is not yet fully supported on web.' Still not gated by Platform.OS !== 'web' in /app/frontend/src/push.ts. Carried over from iter3 action items."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration4.py",
+    "/app/test_reports/pytest/iter4_results.xml",
+    "/app/test_reports/screenshots/iter4_home.png",
+    "/app/test_reports/screenshots/iter4_tasbeeh.png",
+    "/app/test_reports/screenshots/iter4_sunnah.png"
+  ],
+  "action_items": [
+    "OPTIONAL (carried over from iter3): Gate expo-notifications subscription in /app/frontend/src/push.ts with `if (Platform.OS !== 'web')` to silence the repeated web warnings.",
+    "OPTIONAL (carried over): Replace TouchableWithoutFeedback with Pressable in /app/frontend/src/components/Sheet.tsx.",
+    "OPTIONAL (carried over from iter3): /app/frontend/src/components/QiblaSheet.tsx — move `pointerEvents` from prop to style, and investigate which SVG element emits the `transform-origin` warning (try replacing with `transformOrigin` in any custom transforms, or wait for upstream react-native-svg fix).",
+    "OPTIONAL (carried over from iter3): server.py is now ~692 lines — consider splitting into /app/backend/routers/* before adding more features."
+  ],
+  "critical_code_review_comments": [
+    "hijri_highlights.py is clean, pure-function, well-documented. Order-of-precedence comment matches code. Nice.",
+    "server.py:636-667 — /api/hijri-highlight gracefully handles aladhan upstream failure by returning {highlight: null}. Good — UI degrades to no banner.",
+    "TasbeehSheet.tsx:40-54 — wake-lock race fix uses a closure-captured `active` boolean to guard the deactivate. Correct pattern: only deactivate if the promise resolved. Confirmed: no console error observed during open/close cycle in this test run.",
+    "SunnahSheet.tsx HighlightBanner (line 280-314) uses useNativeDriver:true for both opacity and translateY — good native perf, falls back to JS on web (harmless warning).",
+    "SunnahSheet.tsx:62 — `hlR?.highlight` null-guard before setHighlight is correct; banner won't render on generic days.",
+    "Minor: SunnahSheet.tsx declares `type View = 'dashboard' | 'library' | 'category';` which shadows the imported `View` component. It still works because TS distinguishes types from values, but it's a readability foot-gun — consider renaming to `SheetView`.",
+    "server.py:646-661 — if month-override is provided but day is not (or vice versa), the upstream aladhan lookup still runs (because the `if h_day is None or h_month is None` branch fires). Acceptable; documented edge case."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration4.py (new — 22 tests covering hijri-highlight + iter3 regression)",
+    "/app/test_reports/pytest/iter4_results.xml (new — junit XML)",
+    "/app/test_reports/screenshots/iter4_home.png",
+    "/app/test_reports/screenshots/iter4_tasbeeh.png",
+    "/app/test_reports/screenshots/iter4_sunnah.png"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "100% — all 4 feature checks pass (tasbeeh wake-lock fix, highlight banner render, banner positioning, home animation smoothness)"},
+  "seed_data_creation": "Used pre-seeded localStorage (userName=Yusuf, userId=620f4d38-…, userLat=21.4225, userLng=39.8262) via page.add_init_script. Two TEST_ users (TEST_iter4_user, TEST_iter4_pref_user) created in mongo for regression; idempotent — no cleanup needed (push-tokens & notif-prefs are upserted on subsequent runs).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "BASE_URL = https://dark-dhikr.preview.emergentagent.com. /api/hijri-highlight endpoint accepts ?month=X&day=Y overrides for deterministic QA — useful because the live aladhan upstream is brittle (10s timeout). Today (2026-06-24) is 9 Muharram 1448 so the banner shows Tasu'a automatically. To force a different day for screenshots, modify SunnahSheet.tsx line 56 to fetch `/api/hijri-highlight?month=9&day=27` (Laylat al-Qadr). The TasbeehSheet wake-lock race was a genuine fix: previous code called deactivateKeepAwake() in the cleanup function regardless of whether the activation promise had resolved — the new pattern guards with a closure-captured `active` flag. Verified working.",
+  "rca_of_issue": "No bugs found this iteration. Both targeted fixes (wake-lock race + new highlight engine) are working as specified. The 1 remaining console error ('transform-origin' DOM warning) is a known react-native-svg library issue carried over from iter3 — not a regression introduced by this iteration."
+}

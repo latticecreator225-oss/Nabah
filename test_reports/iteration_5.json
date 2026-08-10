@@ -1,0 +1,52 @@
+{
+  "summary": "Hadiya iteration 5 — Prayer-times region picker + Adhkar 3-card picker UX. Backend: 19/19 PASS (100%). All 7 region rectangles return the correct calculation method id and name (Makkah→4 Umm al-Qura, Karachi→1, London→3 MWL, NYC→2 ISNA, Istanbul→13 Diyanet, Cairo→5 Egyptian, KL→17 JAKIM). Manual override (?method=3 over Makkah coords) returns method=3 method_name='Muslim World League'. Response payload shape exact: {timings:{Fajr,Sunrise,Dhuhr,Asr,Maghrib,Isha}, date, method, method_name, school}. Missing lat/lng returns 422. All 8 prior endpoints regress clean (root, hijri-highlight ashura, sunnahs, azkar, notif-prefs, register-push, saved-ayahs, notifications/feed unread). Frontend (mobile viewport 390x844, Makkah seed): Tapping tile-azkar opens adhkar-picker with EXACTLY 3 cards (morning/evening/sleep) under title 'Which fortress today?' as specified. Tapping adhkar-card-morning opens azkar-sheet with working adhkar-back chevron → returns to picker. Ayat al-Kursi transliteration ('Allahu la ilaha illa Huwa al-Hayyul-Qayyum…') renders FULLY visible & wraps cleanly — the trailing ellipsis is part of the data, not truncation (confirmed in /app/backend/ayah_data.py:294). next-prayer-card opens prayer-times-sheet; the Calculation card (prayer-method-toggle) correctly shows 'Umm al-Qura · Makkah' on first open. Tapping prayer-method-toggle reveals prayer-method-picker; tapping prayer-method-3 updates the card to 'Muslim World League' and re-fetches times. Asr toggles work: Asr time changes 3:43 PM (Standard/Shafi'i) ↔ 5:02 PM (Hanafi) and back. All 8 regression sheets open from home (tasbeeh, feelings, sunnah, rhythms, qibla, bookmarks, notifications, settings) plus prayers + azkar. Carry-over console warnings only: TouchableWithoutFeedback deprecated (Sheet backdrop), useNativeDriver web fallback, expo-notifications web listener, react-native-svg transform-origin DOM warning — all pre-existing from iter2/iter3/iter4, not introduced this iteration.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "react-native-svg transform-origin", "issue": "Console error 'Invalid DOM property transform-origin. Did you mean transformOrigin?' — emitted by react-native-svg on web. Carried over from iter3/iter4. Library-level."},
+      {"component": "TouchableWithoutFeedback (deprecated)", "issue": "Warning 'TouchableWithoutFeedback is deprecated. Please use Pressable.' — likely from /app/frontend/src/components/Sheet.tsx backdrop. Carried over."},
+      {"component": "Animated useNativeDriver web", "issue": "Repeated web warning 'useNativeDriver is not supported because the native animated module is missing.' Web-only fallback; harmless on native. Carried over."},
+      {"component": "expo-notifications web listener", "issue": "Repeated warning '[expo-notifications] Listening to push token changes is not yet fully supported on web.' /app/frontend/src/push.ts still not gated by Platform.OS !== 'web'. Carried over from iter3/iter4."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration5.py",
+    "/app/test_reports/pytest/iter5_results.xml",
+    "/app/test_reports/screenshots/iter5_morning_translit.png",
+    "/app/test_reports/screenshots/iter5_prayer_sheet.png"
+  ],
+  "action_items": [
+    "OPTIONAL (carried over from iter3/iter4): Gate expo-notifications subscription in /app/frontend/src/push.ts with `if (Platform.OS !== 'web')` to silence repeated web warnings.",
+    "OPTIONAL (carried over): Replace TouchableWithoutFeedback with Pressable in /app/frontend/src/components/Sheet.tsx.",
+    "OPTIONAL (carried over): /app/frontend/src/components/QiblaSheet.tsx — investigate which SVG element emits the `transform-origin` warning.",
+    "OPTIONAL (carried over): server.py is ~725 lines — consider splitting into /app/backend/routers/ before adding more features."
+  ],
+  "critical_code_review_comments": [
+    "prayer_methods.py:62-127 — clean pure-function rectangles, well-documented with Aladhan IDs and reasoning. Default fallback (MWL) is sensible. UK rectangle (49-61, -11 to 2) correctly resolves London to MWL.",
+    "server.py:671-700 — /api/prayer-times correctly delegates to pick_method when no override, uses METHOD_NAMES dict for human-readable name on override. Good. Times fetched fresh from Aladhan on every call (no caching) — acceptable for now; consider 1-hour LRU cache by (lat,lng,method,school,date) if traffic grows.",
+    "server.py:678-680 — when manual method is provided but unknown, METHOD_NAMES.get(method, f'Method {method}') prevents KeyError. Good defensive coding.",
+    "PrayerTimesSheet.tsx:178-242 — methodCard + pickerBlock UX is clean: tapping the card toggles picker open/close, picking a method calls applyMethod which closes the picker AND re-fetches (good). Asr pills inside picker; visible only when picker is open — that matches the spec.",
+    "AzkarSheet.tsx:140-185 — picker view filters to exactly ['morning','evening','sleep'] essentials. Per spec; do not flag as missing 'after_prayer'/'daily' sections.",
+    "AzkarSheet.tsx — transliteration data for Ayat al-Kursi item is intentionally abbreviated to 'Allahu la ilaha illa Huwa al-Hayyul-Qayyum…' in ayah_data.py:294. The ellipsis is part of the source data, NOT a UI truncation bug. Confirmed wrap works (text spans multiple lines on 390px viewport).",
+    "Minor: PrayerTimesSheet.tsx applyMethod closes the picker on selection — this means the asr-standard / asr-hanafi pills are only reachable after re-opening the picker. Working as designed.",
+    "server.py:725 lines total — file size threshold; consider modular routers in next iteration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration5.py (new — 19 tests: 7 region picks + manual override + Asr school + shape + 422 + 7 regression endpoints)",
+    "/app/test_reports/pytest/iter5_results.xml (new — junit XML)",
+    "/app/test_reports/screenshots/iter5_morning_translit.png",
+    "/app/test_reports/screenshots/iter5_prayer_sheet.png"
+  ],
+  "success_rate": {"backend": "100% (19/19)", "frontend": "100% — all 9 feature checks pass (adhkar picker, 3 cards, Which fortress title, morning open, back chevron, transliteration wrap, prayer sheet open, Makkah=Umm al-Qura initial, MWL switch, Asr Standard↔Hanafi time delta 3:43↔5:02)"},
+  "seed_data_creation": "Used add_init_script to seed localStorage userName=Yusuf, userId=620f4d38-a4b1-436d-9fb2-3b7dd4fc919d, userLat=21.4225, userLng=39.8262 (Makkah) per agent-to-agent context. TEST_iter5_user and TEST_iter5_pref_user created in mongo for regression — idempotent (upserts), no cleanup needed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "BASE_URL = https://dark-dhikr.preview.emergentagent.com. /api/prayer-times accepts ?lat=&lng=&method=&school= where method override skips region picker and school selects Asr fiqh (0=Standard/Shafi'i, 1=Hanafi). PrayerTimesSheet.tsx applyMethod() auto-closes the picker after selection — so Asr toggles are only reachable while picker is open (open via prayer-method-toggle). AzkarSheet picker INTENTIONALLY shows only 3 cards (morning/evening/sleep); 'after_prayer' and 'daily' azkar sections still exist in /api/azkar but are not exposed in the home picker by design. Ayat al-Kursi transliteration in ayah_data.py is intentionally abbreviated with a trailing ellipsis — do not flag as truncation. Note Asr time delta Makkah today 2026-06-24: Standard=3:43 PM, Hanafi=5:02 PM — a useful smoke-test for the school param.",
+  "rca_of_issue": "No bugs found. Initial test run flagged asr-standard/asr-hanafi as not visible — RCA: applyMethod closes the picker on selection, so after tapping prayer-method-3 the picker collapsed and the Asr pills (which live inside pickerBlock) were hidden. Re-running the test with picker re-opened (without first changing method) confirmed Asr toggles work correctly and produce a real prayer-time delta. This is by-design UX, not a defect."
+}

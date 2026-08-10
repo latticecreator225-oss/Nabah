@@ -1,0 +1,181 @@
+{
+  "project": "Nabah (نَبَأ) - A Guide",
+  "archetype": "Archetype 5: Jewel & Luxury (Custom Dark)",
+  "theme": "dark",
+  "colors": {
+    "background_primary": "#0D0D0D",
+    "surface": "#111318",
+    "card": "#1A1B22",
+    "hover": "#22232C",
+    "border_subtle": "#2A2820",
+    "border_accent": "#C9A35540",
+    "gold_primary": "#C9A355",
+    "gold_muted": "#8A7440",
+    "text_primary": "#EDE8DC",
+    "text_secondary": "#A09880",
+    "text_dim": "#5A5448",
+    "danger": "#8B3A3A"
+  },
+  "typography": {
+    "fonts": {
+      "display": "Cormorant Garamond",
+      "arabic": "Scheherazade New",
+      "body": "Inter",
+      "tagline": "Great Vibes"
+    },
+    "scale": {
+      "h1": {
+        "size": "42px",
+        "family": "Cormorant Garamond",
+        "color": "#C9A355",
+        "tracking": "tight"
+      },
+      "h2": {
+        "size": "36px",
+        "family": "Cormorant Garamond",
+        "color": "#EDE8DC",
+        "tracking": "tight"
+      },
+      "h3": {
+        "size": "24px",
+        "family": "Cormorant Garamond",
+        "color": "#EDE8DC"
+      },
+      "arabic_large": {
+        "size": "32px",
+        "family": "Scheherazade New",
+        "color": "#EDE8DC",
+        "lineHeight": "1.8"
+      },
+      "body": {
+        "size": "16px",
+        "family": "Inter",
+        "color": "#A09880",
+        "lineHeight": "1.5"
+      },
+      "label": {
+        "size": "12px",
+        "family": "Inter",
+        "color": "#5A5448",
+        "textTransform": "uppercase",
+        "tracking": "widest"
+      },
+      "tagline": {
+        "size": "28px",
+        "family": "Great Vibes",
+        "color": "#8A7440"
+      }
+    }
+  },
+  "spacing": {
+    "screen_padding": "24px",
+    "card_padding": "20px",
+    "gap_small": "8px",
+    "gap_medium": "16px",
+    "gap_large": "24px",
+    "gap_xl": "32px"
+  },
+  "animations": {
+    "default_duration": "400ms",
+    "easing": "ease-in-out",
+    "behavior": "slow, deliberate, never bouncy",
+    "haptics": "required on EVERY tap (React Native Haptics.selectionAsync or impactAsync)"
+  },
+  "components": {
+    "app_architecture": {
+      "navigation": "NO bottom navigation bar. Single main home screen.",
+      "secondary_screens": "Modal bottom sheets (slide up, dismiss by swipe down)."
+    },
+    "splash_screen": {
+      "background": "#0D0D0D",
+      "elements": [
+        "Logo (paved path disappearing into light)",
+        "Text: نَبَأ",
+        "Gold separator line (1px height, gradient #C9A355 to transparent)",
+        "Tagline: 'A Guide' in Great Vibes font"
+      ]
+    },
+    "onboarding": {
+      "type": "single_screen",
+      "inputs": [
+        "Name",
+        "Phone",
+        "Location Permission (for prayer times)"
+      ],
+      "button": "Gold Primary background, Text Primary (Dark) text"
+    },
+    "home_screen": {
+      "header": {
+        "left": "Avatar (Settings access)",
+        "center": "Hijri Date + Gregorian (label style)"
+      },
+      "greeting": "السلام عليكم [Name]",
+      "hadith_card": "Rotating daily hadith, subtle border",
+      "next_prayer_card": {
+        "background": "#1A1B22 with 4% opacity Islamic geometric SVG pattern",
+        "label": "NEXT PRAYER (label style)",
+        "name": "36px Cormorant Garamond",
+        "countdown": "42px Gold Primary",
+        "progress_bar": "Gold Muted track, Gold Primary fill"
+      },
+      "tiles": {
+        "layout": "Grid/Flex row, 3 tiles",
+        "items": [
+          "Tasbeeh",
+          "Feelings → Ayah",
+          "Azkar"
+        ],
+        "style": "Surface background, Gold accent icon"
+      }
+    },
+    "modals": {
+      "shared_style": {
+        "background": "#111318",
+        "border_top_radius": "24px",
+        "drag_indicator": "4px height, 32px width, #5A5448"
+      },
+      "tasbeeh": {
+        "features": [
+          "Dhikr pill selector",
+          "Animated SVG ring counter",
+          "Big tap zone",
+          "Hardware volume button increment support (via React Native side-effects)"
+        ]
+      },
+      "feelings": {
+        "grid": "10 emotion grid, 2-column",
+        "result_card": "Ayah display (Arabic Scheherazade New + English Inter) + Save/Share buttons"
+      },
+      "azkar": {
+        "features": [
+          "Collapsible sections: Morning, Evening, After Prayer, Sleep, Daily",
+          "Progress ring for completion"
+        ]
+      },
+      "prayer_times": {
+        "features": [
+          "5 prayers list",
+          "Adhan notification toggles per prayer"
+        ]
+      }
+    }
+  },
+  "assets": {
+    "rules": "NO emojis. Use SVG icons only.",
+    "logo_svg_concept": "<svg width='120' height='120' viewBox='0 0 120 120' fill='none' xmlns='http://www.w3.org/2000/svg'><defs><linearGradient id='fadeGlow' x1='60' y1='120' x2='60' y2='0' gradientUnits='userSpaceOnUse'><stop offset='0%' stop-color='#C9A355' stop-opacity='0.8'/><stop offset='50%' stop-color='#C9A355' stop-opacity='0.3'/><stop offset='100%' stop-color='#EDE8DC' stop-opacity='0'/></linearGradient><radialGradient id='horizonLight' cx='60' cy='20' r='30' gradientUnits='userSpaceOnUse'><stop offset='0%' stop-color='#EDE8DC' stop-opacity='0.8'/><stop offset='100%' stop-color='#EDE8DC' stop-opacity='0'/></radialGradient></defs><circle cx='60' cy='20' r='30' fill='url(#horizonLight)' /><path d='M 20 120 C 40 70 55 30 60 20 C 65 30 80 70 100 120 Z' fill='url(#fadeGlow)'/><line x1='30' y1='100' x2='90' y2='100' stroke='#0D0D0D' stroke-width='2'/><line x1='38' y1='80' x2='82' y2='80' stroke='#0D0D0D' stroke-width='2'/><line x1='45' y1='60' x2='75' y2='60' stroke='#0D0D0D' stroke-width='2'/><line x1='50' y1='45' x2='70' y2='45' stroke='#0D0D0D' stroke-width='1.5'/><line x1='55' y1='35' x2='65' y2='35' stroke='#0D0D0D' stroke-width='1'/></svg>",
+    "geometric_pattern_concept": "<svg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'><path d='M20 0 L40 20 L20 40 L0 20 Z M10 10 L30 30 M10 30 L30 10' stroke='#C9A355' stroke-width='0.5' fill='none' opacity='0.04'/></svg>"
+  },
+  "testing_rules": [
+    "All interactive elements must include a testID attribute (React Native equivalent of data-testid)",
+    "Format: kebab-case, role-based. e.g., testID='home-tasbeeh-tile'"
+  ],
+  "instructions_to_main_agent": [
+    "This is a React Native Expo project. Do NOT use DOM elements like <div> or <span>. Use <View>, <Text>, <TouchableOpacity>.",
+    "Strictly follow the color palette. No other colors are allowed.",
+    "Implement navigation using React Navigation, but standard screens are minimal. Use @gorhom/bottom-sheet for all modals.",
+    "Use react-native-reanimated for the 400ms ease-in-out transitions. No spring/bouncy animations.",
+    "Use expo-haptics on every user interaction.",
+    "Use expo-font to load Cormorant Garamond, Scheherazade New, Inter, and Great Vibes.",
+    "Use react-native-svg for all icons and the background patterns. Do not use PNGs or emojis."
+  ]
+}
