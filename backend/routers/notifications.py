@@ -1,12 +1,19 @@
-from datetime import datetime, timezone
+"""
+Nabah · Notification preferences + reminder content.
+
+Reminders fire on the device as local notifications (see the client's
+reminderSchedule.ts) — there is no server-side push transport here. This module
+keeps the user's notification *preferences* (which the client reads to decide
+what to schedule) and serves the reminder *content* templates (preview/sample)
+that the UI shows.
+"""
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import db, logger
+from deps import db
 from auth import current_user_id, assert_owner
-from push_fcm import fcm
 from notifications import (
     fard_payload, pre_adhan_payload, adhkar_payload,
     tahajjud_payload, contextual_sunnah_payload, observance_payload,
@@ -65,66 +72,17 @@ async def save_notif_prefs(payload: NotifPrefs, auth_id: str = Depends(current_u
     return body
 
 
-# ─────────── Emergent Push (register & trigger) ───────────
-class RegisterPushBody(BaseModel):
-    user_id: str
-    platform: str  # "android" | "ios"
-    device_token: str
-
-
-@router.post("/register-push", status_code=201)
-async def register_push(body: RegisterPushBody, auth_id: str = Depends(current_user_id)):
-    assert_owner(body.user_id, auth_id)
-    # Direct FCM: the device token is all we need \u2014 store it and send to it later.
-    # There is no third-party relay to register with anymore.
-    await db.push_tokens.update_one(
-        {"user_id": body.user_id, "platform": body.platform},
-        {"$set": {"device_token": body.device_token, "updated_at": datetime.now(timezone.utc).isoformat()}},
-        upsert=True,
-    )
-    return {"status": "registered"}
-
-
-# ─────────── In-app feed ───────────
-@router.get("/notifications/feed/{user_id}")
-async def notifications_feed(user_id: str, limit: int = 50, auth_id: str = Depends(current_user_id)):
-    assert_owner(user_id, auth_id)
-    rows = await db.notifications_feed.find(
-        {"user_id": user_id}, {"_id": 0}
-    ).sort("sent_at", -1).to_list(min(limit, 200))
-    return rows
-
-
-@router.post("/notifications/feed/read/{user_id}")
-async def notifications_feed_mark_read(user_id: str, auth_id: str = Depends(current_user_id)):
-    assert_owner(user_id, auth_id)
-    await db.notifications_feed.update_many(
-        {"user_id": user_id, "read": {"$ne": True}},
-        {"$set": {"read": True}},
-    )
-    return {"marked": True}
-
-
-@router.get("/notifications/feed/{user_id}/unread-count")
-async def notifications_feed_unread_count(user_id: str, auth_id: str = Depends(current_user_id)):
-    assert_owner(user_id, auth_id)
-    cnt = await db.notifications_feed.count_documents(
-        {"user_id": user_id, "read": {"$ne": True}}
-    )
-    return {"unread": cnt}
-
-
-# ─────────── Preview / sample / test ───────────
+# ─────────── Reminder content (preview / sample) ───────────
 @router.get("/notifications/preview")
 async def notifications_preview():
     return all_payloads_preview()
 
 
-def _resolve_payload(category: str, key: Optional[str]) -> dict:
+def _resolve_payload(category: str, key: Optional[str], minutes: int = 15) -> dict:
     if category == "fard":
         return fard_payload(key or "Fajr")
     if category == "pre_adhan":
-        return pre_adhan_payload(key or "Dhuhr", 15)
+        return pre_adhan_payload(key or "Dhuhr", minutes)
     if category == "adhkar":
         return adhkar_payload(key or "morning")
     if category == "tahajjud":
@@ -139,43 +97,3 @@ def _resolve_payload(category: str, key: Optional[str]) -> dict:
 @router.get("/notifications/sample")
 async def notifications_sample(category: str, key: Optional[str] = None):
     return _resolve_payload(category, key)
-
-
-class TestPushBody(BaseModel):
-    user_id: str
-    category: str = "fard"
-    key: Optional[str] = None
-
-
-@router.post("/notifications/test")
-async def notifications_test(body: TestPushBody, auth_id: str = Depends(current_user_id)):
-    assert_owner(body.user_id, auth_id)
-    data = _resolve_payload(body.category, body.key)
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    detail: Optional[str] = None
-    try:
-        delivery = await fcm.send_to_user(body.user_id, data)
-    except Exception as e:
-        delivery = f"error({type(e).__name__})"; detail = str(e)
-
-    await db.notifications_feed.insert_one({
-        "user_id": body.user_id,
-        "category": body.category,
-        "key": body.key,
-        "title": data.get("title", ""),
-        "message": data.get("message", ""),
-        "action_url": data.get("action_url"),
-        "sent_at": now_iso,
-        "delivery": delivery,
-        "source": "test",
-    })
-
-    if delivery == "no_device" and not detail:
-        detail = "No device registered for push on this account."
-    return {
-        "status": "sent" if delivery == "sent" else "pending",
-        "delivery": delivery,
-        "payload": data,
-        **({"detail": detail} if detail else {}),
-    }

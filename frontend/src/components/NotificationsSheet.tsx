@@ -1,52 +1,90 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform,
   RefreshControl,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
-import { api, FeedItem } from '../api';
 import { logError } from '../log';
 import { FadeInUp } from '../motion';
 
-const CATEGORY_LABEL: Record<string, string> = {
-  fard: 'Prayer',
-  pre_adhan: 'Pre-adhan',
-  adhkar: 'Adhkar',
-  tahajjud: 'Tahajjud',
-  sunnah: 'Sunnah',
-};
+// Reminders are scheduled locally on the device (see reminderSchedule.ts /
+// adhanSchedule.ts). This screen shows what's coming — read straight from the
+// OS scheduler — instead of a server-sent history.
 
-function timeAgo(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (isNaN(t)) return '';
-  const sec = Math.max(0, (Date.now() - t) / 1000);
-  if (sec < 60) return 'just now';
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
-  return `${Math.floor(sec / 86400)}d ago`;
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // expo weekday 1..7
+
+type Upcoming = { id: string; title: string; body: string; when: Date; label: string };
+
+function fmtTime(h: number, m: number): string {
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function nextDaily(h: number, m: number): Date {
+  const now = new Date();
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  if (d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+function nextWeekly(weekday1to7: number, h: number, m: number): Date {
+  const now = new Date();
+  const target = ((weekday1to7 - 1) % 7 + 7) % 7; // 0=Sun
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  let delta = (target - d.getDay() + 7) % 7;
+  if (delta === 0 && d.getTime() <= now.getTime()) delta = 7;
+  d.setDate(d.getDate() + delta);
+  return d;
+}
+
+function toUpcoming(req: Notifications.NotificationRequest): Upcoming | null {
+  const t: any = req.trigger || {};
+  const content: any = req.content || {};
+  const title: string = content.title || 'Reminder';
+  const body: string = content.body || '';
+  const hour = typeof t.hour === 'number' ? t.hour : t?.dateComponents?.hour;
+  const minute = typeof t.minute === 'number' ? t.minute : t?.dateComponents?.minute;
+  const weekday = typeof t.weekday === 'number' ? t.weekday : t?.dateComponents?.weekday;
+  if (typeof hour !== 'number' || typeof minute !== 'number') return null;
+
+  if (typeof weekday === 'number') {
+    const when = nextWeekly(weekday, hour, minute);
+    return { id: req.identifier, title, body, when, label: `${WEEKDAYS[(weekday - 1) % 7]}s · ${fmtTime(hour, minute)}` };
+  }
+  const when = nextDaily(hour, minute);
+  return { id: req.identifier, title, body, when, label: `Daily · ${fmtTime(hour, minute)}` };
+}
+
+function whenLabel(d: Date): string {
+  const diff = d.getTime() - Date.now();
+  const hrs = diff / 3_600_000;
+  if (hrs < 1) return `in ${Math.max(1, Math.round(diff / 60_000))}m`;
+  if (hrs < 24) return `in ${Math.round(hrs)}h`;
+  return `in ${Math.round(hrs / 24)}d`;
 }
 
 export default function NotificationsSheetBody() {
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [items, setItems] = useState<Upcoming[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(false);
 
   const load = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
-    else setRefreshing(true);
-    setError(false);
+    if (!isRefresh) setLoading(true); else setRefreshing(true);
     try {
-      const u = (await AsyncStorage.getItem('userId')) || '';
-      if (!u) { setItems([]); return; }
-      const data = await api.notificationsFeed(u, 80);
-      setItems(Array.isArray(data) ? data : []);
-      // mark all read after loading
-      api.markNotificationsRead(u).catch((e) => logError('notifications.markRead', e));
+      if (Platform.OS === 'web') { setItems([]); return; }
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const up = scheduled
+        .map(toUpcoming)
+        .filter((x): x is Upcoming => x != null)
+        .sort((a, b) => a.when.getTime() - b.when.getTime());
+      setItems(up);
     } catch (e) {
       logError('notifications.load', e);
-      setError(true);
+      setItems([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,12 +100,12 @@ export default function NotificationsSheetBody() {
   return (
     <View style={styles.root} testID="notifications-sheet">
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>RHYTHMS — سجل</Text>
-        <Text style={styles.title}>What we sent you</Text>
+        <Text style={styles.eyebrow}>RHYTHMS — القادم</Text>
+        <Text style={styles.title}>Upcoming reminders</Text>
         <Text style={styles.sub}>
           {items.length === 0
-            ? 'When the Notification Engine speaks, you will see it here.'
-            : `${items.length} quiet nudge${items.length === 1 ? '' : 's'} in your archive.`}
+            ? 'Enable reminders in Rhythms & Reminders to see them here.'
+            : `${items.length} scheduled on this device.`}
         </Text>
       </View>
 
@@ -78,30 +116,21 @@ export default function NotificationsSheetBody() {
           <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={Colors.gold} />
         }
       >
-        {error && items.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyAr}>تعذّر</Text>
-            <Text style={styles.emptyTxt}>Could not load your notifications.</Text>
-            <Text style={styles.emptyTxt}>Pull down to try again.</Text>
-          </View>
-        ) : items.length === 0 ? (
+        {items.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyAr}>صمت</Text>
-            <Text style={styles.emptyTxt}>The archive is silent.</Text>
+            <Text style={styles.emptyTxt}>Nothing scheduled yet.</Text>
           </View>
         ) : (
           items.map((it, idx) => (
-            <FadeInUp key={idx} delay={Math.min(idx, 8) * 45}>
-              <View style={styles.card} testID={`feed-item-${idx}`}>
+            <FadeInUp key={it.id} delay={Math.min(idx, 8) * 45}>
+              <View style={styles.card} testID={`upcoming-${idx}`}>
                 <View style={styles.row}>
-                  <Text style={styles.catLabel}>{CATEGORY_LABEL[it.category] || it.category}</Text>
-                  <Text style={styles.time}>{timeAgo(it.sent_at)}</Text>
+                  <Text style={styles.catLabel}>{it.label}</Text>
+                  <Text style={styles.time}>{whenLabel(it.when)}</Text>
                 </View>
                 <Text style={styles.notifTitle}>{it.title}</Text>
-                <Text style={styles.notifBody}>{it.message}</Text>
-                {it.delivery && it.delivery !== 'sent' ? (
-                  <Text style={styles.delivery}>· {it.delivery}</Text>
-                ) : null}
+                {it.body ? <Text style={styles.notifBody}>{it.body}</Text> : null}
               </View>
             </FadeInUp>
           ))
@@ -132,5 +161,4 @@ const styles = StyleSheet.create({
   time: { fontFamily: Fonts.label, fontSize: 9, letterSpacing: 1, color: Colors.textDim },
   notifTitle: { fontFamily: Fonts.displayBold, fontSize: 16, color: Colors.textPrimary, marginTop: 6, lineHeight: 22 },
   notifBody: { fontFamily: Fonts.displayItalic, fontSize: 13, color: Colors.textSecondary, marginTop: 4, lineHeight: 20 },
-  delivery: { fontFamily: Fonts.label, fontSize: 9, color: Colors.textDim, marginTop: 6, letterSpacing: 1 },
 });

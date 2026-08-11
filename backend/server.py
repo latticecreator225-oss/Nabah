@@ -1,23 +1,19 @@
 """
 Nabah · FastAPI entry point.
 
-Server.py stays thin: app setup, CORS, scheduler lifecycle, router wiring.
-All business logic lives in /app/backend/routers/.
+Server.py stays thin: app setup, CORS, router wiring. All business logic lives
+in /app/backend/routers/.
+
+Reminders are scheduled on the device (local notifications) — there is no
+server-side notification engine or push transport here.
 """
 import os
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from deps import db, logger, close_clients
-from push_fcm import fcm
+from deps import close_clients
 from routers import routers as api_routers
-from scheduler import start_scheduler, shutdown_scheduler
-
-# Set DISABLE_SCHEDULER=1 to run the API without the notification engine — useful
-# for local/dev or tests where MongoDB isn't available (Quran, Duas, prayer
-# times and other read-only endpoints don't need a database).
-SCHEDULER_DISABLED = os.environ.get("DISABLE_SCHEDULER") == "1"
 
 app = FastAPI(title="Nabah API")
 
@@ -45,20 +41,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-async def _startup():
-    if SCHEDULER_DISABLED:
-        logger.info("Scheduler disabled (DISABLE_SCHEDULER=1).")
-        return
-    try:
-        start_scheduler(db)
-    except Exception as e:
-        logger.warning(f"Scheduler boot failed (non-fatal): {e}")
-
-
 @app.on_event("shutdown")
 async def _shutdown():
-    if not SCHEDULER_DISABLED:
-        shutdown_scheduler()
-    await fcm.aclose()
     await close_clients()

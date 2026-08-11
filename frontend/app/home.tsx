@@ -37,9 +37,9 @@ import {
   QiblaIcon,
 } from '../src/components/Icons';
 import { api, fetchPrayerTimes, PrayerTimes } from '../src/api';
-import { registerForPush } from '../src/push';
 import { maybePlayAdhanForPrayer, stopAdhan } from '../src/adhan';
 import { scheduleAdhan } from '../src/adhanSchedule';
+import { scheduleReminders } from '../src/reminderSchedule';
 import { AmbientField, FadeInUp } from '../src/motion';
 import { logError } from '../src/log';
 
@@ -89,7 +89,6 @@ export default function Home() {
   const [sheet, setSheet] = useState<
     null | 'tasbeeh' | 'feelings' | 'azkar' | 'prayers' | 'settings' | 'sunnah' | 'rhythms' | 'bookmarks' | 'notifications' | 'qibla' | 'quran' | 'duas' | 'hadith'
   >(null);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [quranLastRead, setQuranLastRead] = useState<{ surah: number; surahName: string; ayah: number } | null>(null);
   const tickRef = useRef<any>(null);
   const prevNextRef = useRef<PrayerKey | null>(null);
@@ -121,14 +120,8 @@ export default function Home() {
       const ln = await AsyncStorage.getItem('userLng');
       setUserName(name);
       if (uid) {
-        registerForPush(uid);
-        // Fetch unread count via the shared API helper (never the raw env URL).
-        api
-          .notificationsUnreadCount(uid)
-          .then((d) => setUnreadCount(d?.unread || 0))
-          .catch((e) => logError('home.unreadCount', e));
-        // Keep the stored timezone current so server-side reminders follow the
-        // user across travel (fire-and-forget; cached to avoid daily writes).
+        // Keep the stored timezone current (used for the user's prayer-time
+        // calculation); fire-and-forget, cached to avoid daily writes.
         try {
           const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
           const lastTz = await AsyncStorage.getItem('lastSyncedTz');
@@ -200,12 +193,23 @@ export default function Home() {
     router.setParams({ open: undefined } as any);
   }, [params?.open, router]);
 
-  // (Re)schedule the daily adhan whenever today's times load or we return to
-  // home (e.g. after changing adhan settings). Gated to the home surface so it
-  // picks up toggles made in Settings on close.
+  // (Re)schedule the daily adhan AND the reflective reminders whenever today's
+  // times load or we return to home (e.g. after changing Reminders/Settings).
+  // Gated to the home surface so it picks up pref/toggle changes on close. All
+  // notifications are scheduled locally on the device — no server, no push.
   useEffect(() => {
     if (sheet !== null || !times) return;
     scheduleAdhan(times).catch((e) => logError('home.scheduleAdhan', e));
+    (async () => {
+      try {
+        const uid = await AsyncStorage.getItem('userId');
+        if (!uid) return;
+        const prefs = await api.notifPrefs(uid);
+        await scheduleReminders(times, prefs);
+      } catch (e) {
+        logError('home.scheduleReminders', e);
+      }
+    })();
   }, [times, sheet]);
 
   // Make sure no audio (adhan or recitation) lingers when leaving home.
@@ -348,20 +352,12 @@ export default function Home() {
               <BookmarkIcon size={18} color={Colors.goldMuted} />
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => {
-                openSheet('notifications');
-                setUnreadCount(0);
-              }}
+              onPress={() => openSheet('notifications')}
               style={styles.iconBtn}
               testID="home-bell-btn"
               activeOpacity={0.7}
             >
               <BellIcon size={18} color={Colors.goldMuted} />
-              {unreadCount > 0 ? (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              ) : null}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => openSheet('settings')}
@@ -699,24 +695,6 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  badge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    minWidth: 14,
-    height: 14,
-    borderRadius: 7,
-    paddingHorizontal: 3,
-    backgroundColor: Colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    fontFamily: Fonts.bodySemi,
-    fontSize: 8,
-    color: Colors.bgPrimary,
-    letterSpacing: 0.3,
   },
 
   // ── Greeting ──

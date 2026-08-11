@@ -171,23 +171,12 @@ export type NotifPrefs = {
   sunnah_work: boolean;
   reminder_surah_mulk: boolean;
   reminder_surah_kahf: boolean;
+  reminder_jumuah_hour: boolean;
   reminder_ayyamul_bidh: boolean;
   reminder_mon_thu: boolean;
   reminder_arafah: boolean;
   reminder_ashura: boolean;
   reminder_eid: boolean;
-};
-
-export type FeedItem = {
-  user_id: string;
-  category: string;
-  key?: string | null;
-  title: string;
-  message: string;
-  action_url?: string;
-  sent_at: string;
-  delivery?: string;
-  read?: boolean;
 };
 
 // ── Quran ──
@@ -331,16 +320,10 @@ export const api = {
     }
   },
 
-  // ── Notifications (centralised so screens never touch the raw env URL) ──
+  // ── Notification preferences (the client schedules reminders locally) ──
   notifPrefs: (user_id: string) => request<NotifPrefs>(`/notif-prefs/${user_id}`),
   saveNotifPrefs: (body: NotifPrefs) =>
     request<NotifPrefs>('/notif-prefs', { method: 'PUT', body: JSON.stringify(body) }),
-  notificationsFeed: (user_id: string, limit = 50) =>
-    request<FeedItem[]>(`/notifications/feed/${user_id}?limit=${limit}`),
-  notificationsUnreadCount: (user_id: string) =>
-    request<{ unread: number }>(`/notifications/feed/${user_id}/unread-count`),
-  markNotificationsRead: (user_id: string) =>
-    request<{ marked: boolean }>(`/notifications/feed/read/${user_id}`, { method: 'POST' }),
 
   // ── Quran (cached, offline-friendly) ──
   quranSurahs: () => cachedGet<SurahMeta[]>('/quran/surahs', 'cache:quran:surahs'),

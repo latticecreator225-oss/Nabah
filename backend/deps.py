@@ -48,10 +48,9 @@ if not ANTHROPIC_API_KEY:
         "fallbacks."
     )
 
-# ─────────── Push (direct FCM) ───────────
-# Delivery now goes straight to Firebase Cloud Messaging via push_fcm.py; there
-# is no third-party relay. See push_fcm.py for the Firebase service-account
-# configuration.
+# ─────────── Reminders ───────────
+# Reminders are scheduled on the device as local notifications — there is no
+# push transport, scheduler, or Firebase/FCM anywhere in the backend.
 
 
 async def close_clients() -> None:
