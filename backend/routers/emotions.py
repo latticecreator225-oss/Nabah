@@ -1,20 +1,31 @@
 import asyncio
 import hashlib
 import random
-import uuid
 from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import db, EMERGENT_LLM_KEY, logger
+from deps import db, ANTHROPIC_API_KEY, ANTHROPIC_MODEL, logger
 from auth import optional_user_id
 from ayah_data import EMOTION_LABELS, EMOTION_AYAH_POOL, DAILY_REMINDERS
 from routers.users import doc_to_user
 from tafsir import get_tafsir, parse_ref, TAFSIR_NAME
 
 router = APIRouter(prefix="/api", tags=["emotions"])
+
+# Lazy Anthropic client (created once, only if a key is configured).
+_anthropic_client = None
+
+
+def _get_anthropic():
+    global _anthropic_client
+    if _anthropic_client is None:
+        from anthropic import AsyncAnthropic
+
+        _anthropic_client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
+    return _anthropic_client
 
 
 class EmotionRequest(BaseModel):
@@ -77,9 +88,10 @@ async def _generate_reflection(ayah: dict, emotion: str, user_ctx: Optional[dict
         logger.info(f"tafsir unavailable for {ayah.get('reference')} \u2014 using static reflection")
         return _fallback_reflection(emotion)
 
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
+    if not ANTHROPIC_API_KEY:
+        return _fallback_reflection(emotion)
 
+    try:
         name = (user_ctx or {}).get("name") or "friend"
         gender = (user_ctx or {}).get("gender") or "unspecified"
 
@@ -112,14 +124,15 @@ async def _generate_reflection(ayah: dict, emotion: str, user_ctx: Optional[dict
             "it to what the classical exegesis says about this verse. Stay strictly within the tafsir's meaning. "
             "Do not quote the verse. Do not greet. Just speak softly to the heart."
         )
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"nabah-{emotion}-{uuid.uuid4().hex[:8]}",
-            system_message=system,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        msg = UserMessage(text=prompt)
-        response = await chat.send_message(msg)
-        return (response or "").strip().strip('"')
+        client = _get_anthropic()
+        resp = await client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=300,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = "".join(b.text for b in resp.content if b.type == "text").strip().strip('"')
+        return text or _fallback_reflection(emotion)
     except Exception as e:
         logger.warning(f"LLM reflection failed, using fallback: {e}")
         return _fallback_reflection(emotion)

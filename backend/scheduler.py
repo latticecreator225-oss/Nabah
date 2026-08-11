@@ -3,7 +3,7 @@ Nabah · Notification Scheduler
 
 Single in-process APScheduler that:
   • Recomputes each user's daily send-window queue at 00:30 local-tz (UTC for now)
-  • Every minute, dispatches due payloads to recipients via the SuprSend relay
+  • Every minute, dispatches due payloads to recipients via Firebase Cloud Messaging
   • Logs every sent (or attempted) push to `db.notifications_feed` so the
     in-app Notifications Center can replay them.
 
@@ -16,13 +16,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import httpx
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from notifications import (
     fard_payload, pre_adhan_payload, adhkar_payload,
     tahajjud_payload, contextual_sunnah_payload, observance_payload,
 )
+from push_fcm import fcm
 
 # Hijri conversion (Umm al-Qura) for calendar-anchored observances. Optional —
 # if unavailable, observances that depend on the Hijri date are simply skipped.
@@ -57,7 +57,6 @@ def _safe_zone(tz_name: Optional[str]) -> ZoneInfo:
 # Singleton — assigned by start_scheduler()
 _scheduler: Optional[AsyncIOScheduler] = None
 _db = None
-_push_client: Optional[httpx.AsyncClient] = None
 
 
 # ───── prayer-times (computed locally, offline) ─────
@@ -356,7 +355,7 @@ _DISPATCH_GRACE = timedelta(minutes=30)
 async def _dispatch_due():
     """Run every minute — send any payload whose scheduled_at <= now (UTC),
     unless it is more than the grace window late."""
-    assert _db is not None and _push_client is not None
+    assert _db is not None
     now = datetime.now(_UTC)
     cursor = _db.notif_queue.find({
         "sent": False,
@@ -394,16 +393,7 @@ async def _dispatch_due():
         }
 
         try:
-            resp = await _push_client.post(
-                "/api/v1/push/trigger",
-                json={"recipients": [uid], "data": data},
-            )
-            if resp.status_code == 401:
-                feed_doc["delivery"] = "pending"  # placeholder key in preview
-            elif resp.status_code < 400:
-                feed_doc["delivery"] = "sent"
-            else:
-                feed_doc["delivery"] = f"failed({resp.status_code})"
+            feed_doc["delivery"] = await fcm.send_to_user(uid, data)
         except Exception as e:
             feed_doc["delivery"] = f"error({type(e).__name__})"
 
@@ -414,13 +404,12 @@ async def _dispatch_due():
         )
 
 
-def start_scheduler(db, push_client: httpx.AsyncClient) -> AsyncIOScheduler:
+def start_scheduler(db) -> AsyncIOScheduler:
     """Called from server startup. Idempotent."""
-    global _scheduler, _db, _push_client
+    global _scheduler, _db
     if _scheduler is not None:
         return _scheduler
     _db = db
-    _push_client = push_client
     sched = AsyncIOScheduler(timezone="UTC")
     # Plan build runs hourly so each user's local-midnight rollover is picked up
     # within the hour (the build is idempotent and keyed by local date). Dispatch

@@ -4,8 +4,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from deps import db, push_client, logger
+from deps import db, logger
 from auth import current_user_id, assert_owner
+from push_fcm import fcm
 from notifications import (
     fard_payload, pre_adhan_payload, adhkar_payload,
     tahajjud_payload, contextual_sunnah_payload, observance_payload,
@@ -74,17 +75,8 @@ class RegisterPushBody(BaseModel):
 @router.post("/register-push", status_code=201)
 async def register_push(body: RegisterPushBody, auth_id: str = Depends(current_user_id)):
     assert_owner(body.user_id, auth_id)
-    try:
-        resp = await push_client.post("/api/v1/push/users/register", json=body.model_dump())
-        if resp.status_code == 401:
-            logger.info("register_push: push key not configured (likely placeholder) \u2014 deferring")
-            return {"status": "pending", "detail": "Push key not configured"}
-        if resp.status_code >= 500:
-            return {"status": "pending", "detail": "Push provider unavailable"}
-        resp.raise_for_status()
-    except Exception as e:
-        logger.warning(f"register_push relay failed (non-fatal): {e}")
-        return {"status": "pending", "detail": "Push registration deferred until build."}
+    # Direct FCM: the device token is all we need \u2014 store it and send to it later.
+    # There is no third-party relay to register with anymore.
     await db.push_tokens.update_one(
         {"user_id": body.user_id, "platform": body.platform},
         {"$set": {"device_token": body.device_token, "updated_at": datetime.now(timezone.utc).isoformat()}},
@@ -161,19 +153,9 @@ async def notifications_test(body: TestPushBody, auth_id: str = Depends(current_
     data = _resolve_payload(body.category, body.key)
 
     now_iso = datetime.now(timezone.utc).isoformat()
-    delivery = "pending"
     detail: Optional[str] = None
     try:
-        resp = await push_client.post(
-            "/api/v1/push/trigger",
-            json={"recipients": [body.user_id], "data": data},
-        )
-        if resp.status_code == 401:
-            delivery = "pending"; detail = "Push key not configured"
-        elif resp.status_code < 400:
-            delivery = "sent"
-        else:
-            delivery = f"failed({resp.status_code})"
+        delivery = await fcm.send_to_user(body.user_id, data)
     except Exception as e:
         delivery = f"error({type(e).__name__})"; detail = str(e)
 
@@ -189,8 +171,11 @@ async def notifications_test(body: TestPushBody, auth_id: str = Depends(current_
         "source": "test",
     })
 
+    if delivery == "no_device" and not detail:
+        detail = "No device registered for push on this account."
     return {
         "status": "sent" if delivery == "sent" else "pending",
+        "delivery": delivery,
         "payload": data,
         **({"detail": detail} if detail else {}),
     }

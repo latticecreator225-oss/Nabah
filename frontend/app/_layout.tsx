@@ -30,16 +30,6 @@ if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
       const data: any = notification.request.content.data || {};
-      // SuprSend Android data-only payload: suppress JS-side display; native service handles it
-      if (Platform.OS === 'android' && typeof data.supr_send_n_pl === 'string') {
-        return {
-          shouldShowAlert: false,
-          shouldPlaySound: false,
-          shouldSetBadge: false,
-          shouldShowBanner: false,
-          shouldShowList: false,
-        } as any;
-      }
       // A scheduled adhan firing while the app is open: show the banner but stay
       // silent — the in-app audio player sounds the full adhan, so we avoid
       // playing the notification tone on top of it.
@@ -65,14 +55,8 @@ if (Platform.OS === 'android') {
 }
 
 function extractUrl(data: any): string | undefined {
-  let url = data?.deeplink || data?.action_url;
-  if (!url && typeof data?.supr_send_n_pl === 'string') {
-    try {
-      const parsed = JSON.parse(data.supr_send_n_pl);
-      url = parsed.deeplink || parsed.action_url;
-    } catch {}
-  }
-  return url;
+  // FCM delivers our payload's fields flat in `data`; the deep link is action_url.
+  return data?.deeplink || data?.action_url;
 }
 
 export default function RootLayout() {

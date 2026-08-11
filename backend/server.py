@@ -9,7 +9,8 @@ import os
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from deps import db, push_client, logger, close_clients
+from deps import db, logger, close_clients
+from push_fcm import fcm
 from routers import routers as api_routers
 from scheduler import start_scheduler, shutdown_scheduler
 
@@ -50,7 +51,7 @@ async def _startup():
         logger.info("Scheduler disabled (DISABLE_SCHEDULER=1).")
         return
     try:
-        start_scheduler(db, push_client)
+        start_scheduler(db)
     except Exception as e:
         logger.warning(f"Scheduler boot failed (non-fatal): {e}")
 
@@ -59,4 +60,5 @@ async def _startup():
 async def _shutdown():
     if not SCHEDULER_DISABLED:
         shutdown_scheduler()
+    await fcm.aclose()
     await close_clients()

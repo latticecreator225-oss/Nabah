@@ -3,11 +3,10 @@
 // Everything still lives in app.json — this wrapper layers on two build-time
 // concerns that a static file can't express:
 //
-//   1. Firebase / SuprSend FCM push is OPTIONAL. With no google-services.json in
-//      the project we drop the `googleServicesFile` reference and the
-//      `withSuprSendFcm` plugin so a build (e.g. a test APK via EAS) succeeds
-//      without a Firebase project. Add a real google-services.json and it's
-//      wired back in.
+//   1. Firebase is OPTIONAL for a build. Push goes through expo-notifications +
+//      FCM, which needs a google-services.json. With none in the project we drop
+//      the `googleServicesFile` reference so a build (e.g. a quick test APK) still
+//      succeeds; add a real google-services.json and push is wired back in.
 //
 //   2. Cleartext (plain HTTP) traffic is OFF by default (app.json sets
 //      usesCleartextTraffic:false) so production only ever talks to an HTTPS
@@ -22,13 +21,9 @@ module.exports = ({ config }) => {
 
   const hasFirebase = fs.existsSync(path.join(__dirname, 'google-services.json'));
   if (!hasFirebase) {
-    const plugins = (result.plugins || []).filter((p) => {
-      const name = Array.isArray(p) ? p[0] : p;
-      return name !== './plugins/withSuprSendFcm';
-    });
     const android = { ...(result.android || {}) };
     delete android.googleServicesFile;
-    result = { ...result, plugins, android };
+    result = { ...result, android };
   }
 
   // Cleartext: only when explicitly allowed (dev/LAN). Reflect the flag into the

@@ -7,7 +7,6 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
-import httpx
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -37,33 +36,24 @@ _db_name = _require_env("DB_NAME")
 client = AsyncIOMotorClient(_mongo_url)
 db = client[_db_name]
 
-# ─────────── LLM key (Emergent universal) ───────────
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
-if not EMERGENT_LLM_KEY:
+# ─────────── LLM (Anthropic, direct) ───────────
+# Powers the emotion → ayah reflection. If unset, the app uses its hand-written
+# static fallbacks (grounded-or-static policy). Model is overridable; defaults to
+# the latest Opus.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-8")
+if not ANTHROPIC_API_KEY:
     logger.warning(
-        "EMERGENT_LLM_KEY is not set — emotion/ayah generation will fall back "
-        "to static responses where available."
+        "ANTHROPIC_API_KEY is not set — emotion/ayah reflections use static "
+        "fallbacks."
     )
 
-# ─────────── Emergent Push (SuprSend relay) ───────────
-PUSH_BASE_URL = "https://integrations.emergentagent.com"
-EMERGENT_PUSH_KEY = os.environ.get("EMERGENT_PUSH_KEY", "placeholder")
-if EMERGENT_PUSH_KEY == "placeholder":
-    logger.warning(
-        "EMERGENT_PUSH_KEY is using the placeholder value — push registration and "
-        "delivery run in preview/no-op mode until a real key is configured."
-    )
-push_client = httpx.AsyncClient(
-    base_url=PUSH_BASE_URL,
-    headers={"X-Push-Key": EMERGENT_PUSH_KEY},
-    timeout=10.0,
-)
+# ─────────── Push (direct FCM) ───────────
+# Delivery now goes straight to Firebase Cloud Messaging via push_fcm.py; there
+# is no third-party relay. See push_fcm.py for the Firebase service-account
+# configuration.
 
 
 async def close_clients() -> None:
     """Tear down on shutdown."""
-    try:
-        await push_client.aclose()
-    except Exception:
-        pass
     client.close()

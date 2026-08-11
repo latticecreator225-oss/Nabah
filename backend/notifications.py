@@ -8,7 +8,7 @@ Poetic, time-anchored push payload templates for the five categories:
   4. The Night Vigil (Tahajjud — last third)
   5. Contextual Sunnahs
 
-Each payload follows the SuprSend trigger contract:
+Each payload is a flat dict delivered as an FCM message (notification + data):
   { title: str, message: str, action_url: str (deeplink), subtext?: str }
 
 The title is the call. The body is the breath. Never preachy, never an emoji.

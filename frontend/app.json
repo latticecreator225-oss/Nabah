@@ -57,7 +57,6 @@
           "androidMode": "default"
         }
       ],
-      "./plugins/withSuprSendFcm",
       "expo-font",
       [
         "expo-build-properties",
