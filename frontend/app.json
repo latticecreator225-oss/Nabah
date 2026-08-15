@@ -9,7 +9,12 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "bundleIdentifier": "com.nabah.app",
+      "supportsTablet": false,
+      "icon": "./assets/images/icon-ios.png",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Used to calculate accurate prayer times for you."
       }
