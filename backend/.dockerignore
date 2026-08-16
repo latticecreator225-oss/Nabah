@@ -1,0 +1,13 @@
+# Keep secrets, caches, and dev-only files out of the image.
+.env
+.env.*
+!.env.example
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+test_reports/
+.emergent/
+*.md
+requirements.txt
