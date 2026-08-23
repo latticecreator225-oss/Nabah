@@ -49,8 +49,8 @@ export default function FeelingsSheetBody({ onClose }: Props) {
     return () => { stopAudio(); };
   }, []);
 
-  // A gentle, looping recitation of the exact ayah on screen (Alafasy) —
-  // turns the text into a calming soundscape. Native only; web has no player.
+  // Plays the exact ayah on screen (Alafasy) once and stops. Native only; web
+  // has no player.
   const toggleAmbient = async () => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
     if (ambientOn) {
@@ -66,7 +66,11 @@ export default function FeelingsSheetBody({ onClose }: Props) {
       const surah = await api.quranSurah(loc.surah); // cached after first load
       const verse = surah.ayahs.find((a) => a.number === loc.ayah);
       if (verse?.audio) {
-        await playAudio(verse.audio, { loop: true, onError: () => setAmbientOn(false) });
+        await playAudio(verse.audio, {
+          loop: false,
+          onFinish: () => setAmbientOn(false),
+          onError: () => setAmbientOn(false),
+        });
         setAmbientOn(true);
       }
     } catch (e) {
@@ -329,6 +333,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.borderAccent,
   },
   surahLabel: {
+    flex: 1,
     fontFamily: Fonts.label,
     color: Colors.gold,
     fontSize: 10,
@@ -339,8 +344,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   refreshBtn: {
+    flexShrink: 0,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: Radius.pill,

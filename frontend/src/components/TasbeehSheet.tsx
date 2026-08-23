@@ -13,7 +13,7 @@ import * as Haptics from 'expo-haptics';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
 import ProgressRing from './ProgressRing';
-import { VolumeIcon, CheckIcon } from './Icons';
+import { CheckIcon } from './Icons';
 import { Bump } from '../motion';
 
 type Dhikr = { id: string; ar: string; en: string; target: number };
@@ -54,46 +54,11 @@ export default function TasbeehSheetBody({ onClose }: Props) {
     };
   }, []);
 
-  // Hardware volume buttons (native only) — fixed with reset-guard pattern
-  useEffect(() => {
-    let sub: any;
-    let isResetting = false;
-    let mod: any;
-    if (Platform.OS !== 'web') {
-      (async () => {
-        try {
-          mod = await import('react-native-volume-manager');
-          const { VolumeManager } = mod;
-          // Hide native UI + prime volume to mid so next press always triggers a change event
-          try { await VolumeManager.enable(true, false); } catch {}
-          try { VolumeManager.showNativeVolumeUI({ enabled: false }); } catch {}
-          try { await VolumeManager.setVolume(0.5, { showUI: false }); } catch {}
-          sub = VolumeManager.addVolumeListener(async () => {
-            if (isResetting) {
-              isResetting = false;
-              return;
-            }
-            handleIncrement();
-            isResetting = true;
-            try {
-              await VolumeManager.setVolume(0.5, { showUI: false });
-            } catch {
-              isResetting = false;
-            }
-          });
-        } catch {}
-      })();
-    }
-    return () => {
-      try {
-        sub?.remove?.();
-      } catch {}
-      if (mod && Platform.OS !== 'web') {
-        try { mod.VolumeManager.showNativeVolumeUI({ enabled: true }); } catch {}
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected]);
+  // Hardware volume-button counting is disabled for now: react-native-volume-
+  // manager's supported baseline is RN 0.85+, this app is on RN 0.81.5 with
+  // the New Architecture enabled, and the native-module ABI mismatch crashed
+  // this screen on open (a native crash, not a JS error — try/catch around
+  // its calls can't prevent it). Tap-to-count below is unaffected.
 
   const handleIncrement = () => {
     setCount((c) => {
@@ -156,10 +121,6 @@ export default function TasbeehSheetBody({ onClose }: Props) {
     <View style={styles.root} testID="tasbeeh-sheet">
       <View style={styles.headerRow}>
         <Text style={styles.title}>Tasbeeh</Text>
-        <View style={styles.volumePill} testID="tasbeeh-volume-indicator">
-          <VolumeIcon size={12} />
-          <Text style={styles.volumeText}>Volume keys active</Text>
-        </View>
       </View>
 
       <ScrollView
@@ -281,24 +242,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.display,
     fontSize: 26,
     color: Colors.textPrimary,
-  },
-  volumePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: Colors.borderAccent,
-    backgroundColor: Colors.card,
-  },
-  volumeText: {
-    fontFamily: Fonts.label,
-    fontSize: 10,
-    color: Colors.gold,
-    letterSpacing: 1.3,
-    textTransform: 'uppercase',
   },
   chip: {
     paddingHorizontal: Spacing.md,
