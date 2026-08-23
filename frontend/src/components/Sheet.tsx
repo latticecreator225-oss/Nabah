@@ -71,7 +71,7 @@ export default function Sheet({ visible, onClose, children, testID, height }: Pr
   // visible 4px bar — without it, dismissing only works if you land a finger
   // on that sliver exactly, which reads as "broken" / needing the literal top.
   const pan = Gesture.Pan()
-    .hitSlop({ top: 8, bottom: 36, left: 60, right: 60 })
+    .hitSlop({ top: 8, bottom: 50, left: 80, right: 80 })
     .minDistance(2)
     .onStart(() => {
       dragStart.value = y.value;
@@ -146,8 +146,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gold,
     opacity: 0.5,
   },
-  // Bigger touch target than the visible bar so the handle is easy to grab.
-  handleWrap: { alignItems: 'center', paddingTop: Spacing.sm + 2, paddingBottom: Spacing.sm + 4 },
+  // Real (not just hitSlop-invisible) touch target, full sheet width, ~44pt
+  // tall — Apple's own minimum comfortable target size — so grabbing the
+  // handle doesn't require pixel-precision on the thin 4px bar itself.
+  handleWrap: { alignSelf: 'stretch', alignItems: 'center', paddingTop: Spacing.md, paddingBottom: Spacing.lg },
   handle: {
     width: 44,
     height: 4,

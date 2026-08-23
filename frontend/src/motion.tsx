@@ -17,7 +17,6 @@ import Reanimated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
-  withSequence,
 } from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Colors } from './theme';
@@ -134,10 +133,13 @@ export function Bump({
       return;
     }
     if (reduced) return; // no pop under reduced motion
-    s.value = withSequence(
-      withTiming(peak, { duration: 80, easing: Easing.out(Easing.quad) }),
-      withSpring(1, SPRINGS.tactile),
-    );
+    // withTiming's completion callback chains into the settle spring on the UI
+    // thread — deliberately not withSequence, which Tasbeeh was the app's only
+    // user of and the one screen that crashed on interaction.
+    s.value = withTiming(peak, { duration: 80, easing: Easing.out(Easing.quad) }, (finished) => {
+      'worklet';
+      if (finished) s.value = withSpring(1, SPRINGS.tactile);
+    });
   }, [value, peak, s, reduced]);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return <Reanimated.View style={[style, anim]}>{children}</Reanimated.View>;
