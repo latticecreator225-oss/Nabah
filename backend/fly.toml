@@ -1,0 +1,25 @@
+# Fly.io app config for the Nabah API.
+# Generated for `fly deploy` from this directory. Uses the existing Dockerfile
+# as-is (python:3.12-slim, uvicorn on $PORT) — no Cloud-Run-specific bits here.
+#
+# `app` must be globally unique across all of Fly.io — rename it before first
+# deploy if "nabah-api" is already taken (`fly apps create <name>` will tell you).
+app = "nabah-api"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

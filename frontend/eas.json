@@ -21,8 +21,7 @@
       },
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "http://192.168.0.19:8000",
-        "EXPO_PUBLIC_ALLOW_CLEARTEXT": "1"
+        "EXPO_PUBLIC_BACKEND_URL": "https://nabah-api.fly.dev"
       }
     },
     "production": {
@@ -31,7 +30,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://api.nabah.app"
+        "EXPO_PUBLIC_BACKEND_URL": "https://nabah-api.fly.dev"
       }
     }
   },

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Nabah",
-    "slug": "nabah",
+    "slug": "nabah2510",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -73,6 +73,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3a4999ee-8c6d-484e-914d-a1112f7e7608"
+      }
     }
   }
 }
