@@ -90,7 +90,10 @@ export default function NabaKineticLogo({ variant = 'full', onDone, size = 146 }
 
   return (
     <Animated.View style={{ opacity, transform: [{ scale }, { translateY: rise }] }}>
-      <Text style={[styles.word, { fontSize: size, lineHeight: size * 1.6 }]} allowFontScaling={false}>
+      <Text
+        style={[styles.word, { fontSize: size, lineHeight: size * 2, paddingTop: size * 0.22 }]}
+        allowFontScaling={false}
+      >
         {WORD}
       </Text>
     </Animated.View>
