@@ -6,21 +6,10 @@ import {
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
-import { API } from '../api';
+import { api, SavedAyah } from '../api';
 import { confirmDestructive } from '../alerts';
 import { FadeInUp } from '../motion';
 import { HeartIcon, ShareIcon } from './Icons';
-
-type SavedAyah = {
-  id: string;
-  user_id: string;
-  emotion: string;
-  arabic: string;
-  english: string;
-  surah: string;
-  reference: string;
-  created_at: string;
-};
 
 export default function BookmarksSheetBody() {
   const [items, setItems] = useState<SavedAyah[]>([]);
@@ -35,8 +24,7 @@ export default function BookmarksSheetBody() {
       const u = (await AsyncStorage.getItem('userId')) || '';
       setUid(u);
       if (!u) { setItems([]); return; }
-      const res = await fetch(`${API}/saved-ayahs/${u}`);
-      const data = await res.json();
+      const data = await api.savedAyahs(u);
       setItems(Array.isArray(data) ? data : []);
     } catch {} finally {
       setLoading(false);
@@ -56,7 +44,7 @@ export default function BookmarksSheetBody() {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         setItems((prev) => prev.filter((x) => x.id !== a.id));
         try {
-          await fetch(`${API}/saved-ayahs/${uid}/${a.id}`, { method: 'DELETE' });
+          await api.deleteSavedAyah(uid, a.id);
         } catch {}
       },
     );

@@ -208,8 +208,11 @@ export type SurahDetail = {
   translation: string;
   translation_name: string;
   script?: string;
+  reciter?: string;
+  reciter_name?: string;
   ayahs: Ayah[];
 };
+export type Reciter = { id: string; name: string };
 
 // ── Duas ──
 export type DuaCategory = {
@@ -270,6 +273,18 @@ export type HadithListResp = {
   hadiths: HadithItem[];
 };
 
+// ── Saved ayahs (bookmarks) ──
+export type SavedAyah = {
+  id: string;
+  user_id: string;
+  emotion: string;
+  arabic: string;
+  english: string;
+  surah: string;
+  reference: string;
+  created_at: string;
+};
+
 const HIJRI_CACHE_KEY = 'cache:hijri-date';
 
 export type CreatedUser = UserT & { token: string };
@@ -298,6 +313,9 @@ export const api = {
       body: JSON.stringify({ emotion, user_id, refresh, seen }),
     }),
   saveAyah: (body: any) => request('/saved-ayahs', { method: 'POST', body: JSON.stringify(body) }),
+  savedAyahs: (user_id: string) => request<SavedAyah[]>(`/saved-ayahs/${user_id}`),
+  deleteSavedAyah: (user_id: string, ayah_id: string) =>
+    request(`/saved-ayahs/${user_id}/${ayah_id}`, { method: 'DELETE' }),
   azkar: () => request<AzkarSection[]>('/azkar'),
   azkarProgress: (user_id: string) =>
     request<{ completed: string[] }>(`/azkar/progress/${user_id}`),
@@ -327,10 +345,11 @@ export const api = {
 
   // ── Quran (cached, offline-friendly) ──
   quranSurahs: () => cachedGet<SurahMeta[]>('/quran/surahs', 'cache:quran:surahs'),
-  quranSurah: (n: number, translation = 'en.sahih', script = 'uthmani') =>
+  quranReciters: () => cachedGet<Reciter[]>('/quran/reciters', 'cache:quran:reciters'),
+  quranSurah: (n: number, translation = 'en.sahih', script = 'uthmani', reciter = 'alafasy') =>
     cachedGet<SurahDetail>(
-      `/quran/surah/${n}?translation=${translation}&script=${script}`,
-      `cache:quran:surah:${n}:${translation}:${script}`,
+      `/quran/surah/${n}?translation=${translation}&script=${script}&reciter=${reciter}`,
+      `cache:quran:surah:${n}:${translation}:${script}:${reciter}`,
     ),
 
   // ── Duas (cached, offline-friendly) ──

@@ -2,9 +2,10 @@
 Nabah · Quran reader
 
 Thin proxy over alquran.cloud that merges the editions a reader needs — Arabic
-(Uthmani script), English transliteration, a translation, and Mishary Alafasy
-verse-by-verse audio — into one ayah list, so the app makes a single call per
-surah. Responses are cached in-process (the text never changes).
+(Uthmani script), English transliteration, and a translation — with
+verse-by-verse recitation audio built directly from everyayah.com (chosen by
+`reciter`), into one ayah list, so the app makes a single call per surah.
+Responses are cached in-process (the text never changes).
 """
 import asyncio
 from typing import Dict, List, Optional, Tuple
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api", tags=["quran"])
 
 ALQURAN = "https://api.alquran.cloud/v1"
 
-# Translations the client may request. Transliteration + audio are fixed.
+# Translations the client may request. Transliteration is fixed.
 TRANSLATIONS = {
     "en.sahih": "Saheeh International",
     "en.asad": "Muhammad Asad",
@@ -26,7 +27,34 @@ TRANSLATIONS = {
     "en.yusufali": "Yusuf Ali",
 }
 DEFAULT_TRANSLATION = "en.sahih"
-AUDIO_EDITION = "ar.alafasy"  # Mishary Rashid Alafasy
+
+# Verse-by-verse recitation audio, built directly from everyayah.com — one
+# uniform URL pattern covers every reciter, unlike alquran.cloud's audio
+# editions, which are missing several of these (notably Al-Dosari and
+# Al-Ghamdi). URL: https://everyayah.com/data/{folder}/{surah:03}{ayah:03}.mp3
+RECITERS: Dict[str, str] = {
+    "alafasy": "Alafasy_128kbps",
+    "sudais": "Abdurrahmaan_As-Sudais_192kbps",
+    "muaiqly": "MaherAlMuaiqly128kbps",
+    "dosari": "Yasser_Ad-Dussary_128kbps",
+    "shuraim": "Saood_ash-Shuraym_128kbps",
+    "ghamdi": "Ghamadi_40kbps",
+}
+RECITER_NAMES: Dict[str, str] = {
+    "alafasy": "Mishary Alafasy",
+    "sudais": "Abdul Rahman Al-Sudais",
+    "muaiqly": "Maher Al Muaiqly",
+    "dosari": "Yasser Al-Dosari",
+    "shuraim": "Saud Al-Shuraim",
+    "ghamdi": "Saad Al-Ghamdi",
+}
+DEFAULT_RECITER = "alafasy"
+EVERYAYAH = "https://everyayah.com/data"
+
+
+def _audio_url(reciter: str, surah: int, ayah: int) -> str:
+    folder = RECITERS.get(reciter, RECITERS[DEFAULT_RECITER])
+    return f"{EVERYAYAH}/{folder}/{surah:03d}{ayah:03d}.mp3"
 
 # Arabic script style. "uthmani" = the Madinah/Saudi Mushaf (default), served by
 # alquran.cloud. "indopak" = the Indo-Pak orthography, sourced from the Saudi
@@ -94,16 +122,23 @@ async def quran_translations():
     return [{"id": k, "name": v} for k, v in TRANSLATIONS.items()]
 
 
+@router.get("/quran/reciters")
+async def quran_reciters():
+    return [{"id": k, "name": v} for k, v in RECITER_NAMES.items()]
+
+
 @router.get("/quran/surah/{number}")
 async def quran_surah(
     number: int,
     translation: str = DEFAULT_TRANSLATION,
     script: str = DEFAULT_SCRIPT,
+    reciter: str = DEFAULT_RECITER,
 ):
     """One surah: Arabic + transliteration + translation + audio, merged per ayah.
 
     `script` selects the Arabic orthography: "uthmani" (the Madinah/Saudi Mushaf,
-    default) or "indopak".
+    default) or "indopak". `reciter` selects verse-by-verse recitation audio
+    (see RECITERS); text/translation are unaffected by it.
     """
     if number < 1 or number > 114:
         raise HTTPException(404, "Surah not found")
@@ -111,8 +146,10 @@ async def quran_surah(
         translation = DEFAULT_TRANSLATION
     if script not in SCRIPTS:
         script = DEFAULT_SCRIPT
+    if reciter not in RECITERS:
+        reciter = DEFAULT_RECITER
 
-    cache_key = f"{number}:{translation}:{script}"
+    cache_key = f"{number}:{translation}:{script}:{reciter}"
     if cache_key in _SURAH_CACHE:
         return _SURAH_CACHE[cache_key]
 
@@ -125,19 +162,18 @@ async def quran_surah(
             logger.warning(f"indopak load failed, falling back to uthmani: {e}")
             indopak = None
 
-    editions = f"quran-uthmani,en.transliteration,{translation},{AUDIO_EDITION}"
+    editions = f"quran-uthmani,en.transliteration,{translation}"
     try:
         r = requests.get(f"{ALQURAN}/surah/{number}/editions/{editions}", timeout=12)
         r.raise_for_status()
         eds = r.json().get("data", [])
-        if len(eds) < 4:
+        if len(eds) < 3:
             raise ValueError("unexpected editions payload")
-        arabic, translit, english, audio = eds[0], eds[1], eds[2], eds[3]
+        arabic, translit, english = eds[0], eds[1], eds[2]
 
         ar_ayahs = arabic.get("ayahs", [])
         tl_ayahs = translit.get("ayahs", [])
         en_ayahs = english.get("ayahs", [])
-        au_ayahs = audio.get("ayahs", [])
 
         ayahs = []
         for i, a in enumerate(ar_ayahs):
@@ -150,7 +186,7 @@ async def quran_surah(
                 "arabic": arabic_text,
                 "transliteration": tl_ayahs[i].get("text", "") if i < len(tl_ayahs) else "",
                 "english": en_ayahs[i].get("text", "") if i < len(en_ayahs) else "",
-                "audio": au_ayahs[i].get("audio") if i < len(au_ayahs) else None,
+                "audio": _audio_url(reciter, number, num_in_surah),
                 "juz": a.get("juz"),
                 "page": a.get("page"),
                 "sajda": bool(a.get("sajda")),
@@ -166,6 +202,8 @@ async def quran_surah(
             "translation": translation,
             "translation_name": TRANSLATIONS[translation],
             "script": script,
+            "reciter": reciter,
+            "reciter_name": RECITER_NAMES[reciter],
             "ayahs": ayahs,
         }
         _SURAH_CACHE[cache_key] = out

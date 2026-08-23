@@ -67,7 +67,12 @@ export default function Sheet({ visible, onClose, children, testID, height }: Pr
 
   // Handle-only drag: attaching the gesture to the grab handle (not the whole
   // sheet) keeps each sheet's inner ScrollView/FlatList free of conflict.
+  // hitSlop extends where the gesture *recognizes* touches well past the
+  // visible 4px bar — without it, dismissing only works if you land a finger
+  // on that sliver exactly, which reads as "broken" / needing the literal top.
   const pan = Gesture.Pan()
+    .hitSlop({ top: 8, bottom: 36, left: 60, right: 60 })
+    .minDistance(2)
     .onStart(() => {
       dragStart.value = y.value;
     })

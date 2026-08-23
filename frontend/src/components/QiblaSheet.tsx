@@ -4,7 +4,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Magnetometer } from 'expo-sensors';
+import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import { Colors, Fonts, Spacing, Radius } from '../theme';
@@ -22,13 +22,6 @@ function bearingTo(lat: number, lng: number): number {
   const y = Math.sin(Δλ) * Math.cos(φ2);
   const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
-}
-
-function headingFromMagnetometer(x: number, y: number, z: number): number {
-  let θ = Math.atan2(y, x) * (180 / Math.PI);
-  if (θ < 0) θ += 360;
-  // Adjust so north is 0° (sensor x points east on most devices)
-  return (90 - θ + 360) % 360;
 }
 
 export default function QiblaSheetBody() {
@@ -54,27 +47,35 @@ export default function QiblaSheetBody() {
   }, []);
 
   useEffect(() => {
-    let sub: any;
+    let sub: Location.LocationSubscription | undefined;
+    let cancelled = false;
     (async () => {
       try {
-        const ok = await Magnetometer.isAvailableAsync();
-        setAvailable(ok);
-        if (!ok) return;
-        Magnetometer.setUpdateInterval(120);
-        sub = Magnetometer.addListener(({ x, y, z }) => {
-          const h = headingFromMagnetometer(x, y, z);
+        // watchHeadingAsync uses the OS's own sensor-fused compass (accelerometer +
+        // magnetometer, tilt-compensated) — critically, it works held upright the
+        // way anyone actually checks Qibla, unlike a raw atan2(y, x) over the flat
+        // magnetometer vector, which only reads correctly lying flat on a table.
+        // trueHeading is also already magnetic-declination-corrected, matching the
+        // true-north Qibla bearing computed above (magHeading is not).
+        sub = await Location.watchHeadingAsync(({ trueHeading, magHeading, accuracy }) => {
+          if (cancelled) return;
+          const h = trueHeading >= 0 ? trueHeading : magHeading;
           // Smooth — exponential filter on shortest angular path
           const prev = lastHeadingRef.current;
           let delta = ((h - prev + 540) % 360) - 180;
           const smoothed = (prev + delta * 0.18 + 360) % 360;
           lastHeadingRef.current = smoothed;
           setHeading(smoothed);
+          setAvailable(accuracy > 0);
         });
       } catch (e) {
-        setAvailable(false);
+        if (!cancelled) setAvailable(false);
       }
     })();
-    return () => { try { sub && sub.remove(); } catch {} };
+    return () => {
+      cancelled = true;
+      try { sub?.remove(); } catch {}
+    };
   }, []);
 
   // Rotate the compass dial so that the user's current heading is at the top
@@ -151,7 +152,7 @@ export default function QiblaSheetBody() {
       <View style={styles.legend}>
         {available === false && (
           <Text style={styles.warn}>
-            Magnetometer not available on this device. The compass needle is shown for reference only — the Qibla bearing is correct.
+            Compass not available on this device. The needle is shown for reference only — the Qibla bearing is correct.
           </Text>
         )}
         {available === null && <ActivityIndicator color={Colors.gold} />}

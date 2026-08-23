@@ -61,31 +61,34 @@ export default function TasbeehSheetBody({ onClose }: Props) {
   // its calls can't prevent it). Tap-to-count below is unaffected.
 
   const handleIncrement = () => {
-    setCount((c) => {
-      const n = c + 1;
-      if (Platform.OS !== 'web') {
-        if (n < selected.target && n % 33 === 0) {
-          // Distinct double pulse at each 33 — countable from inside a pocket.
+    // Side effects (haptics, the completion timer) live here in the handler,
+    // not inside a setState updater — updaters must stay pure, and React may
+    // invoke one more than once.
+    const n = count + 1;
+    const completed = n >= selected.target;
+    setCount(completed ? 0 : n);
+
+    if (Platform.OS !== 'web') {
+      if (!completed && n % 33 === 0) {
+        // Distinct double pulse at each 33 — countable from inside a pocket.
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+        setTimeout(() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
-          setTimeout(() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
-          }, 140);
-        } else {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-        }
+        }, 140);
+      } else if (!completed) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       }
-      if (n >= selected.target) {
-        setSession((s) => s + n);
-        if (Platform.OS !== 'web') {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        }
-        setJustCompleted(true);
-        clearTimeout(completedTimer.current);
-        completedTimer.current = setTimeout(() => setJustCompleted(false), 1200);
-        return 0;
+    }
+
+    if (completed) {
+      setSession((s) => s + n);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       }
-      return n;
-    });
+      setJustCompleted(true);
+      clearTimeout(completedTimer.current);
+      completedTimer.current = setTimeout(() => setJustCompleted(false), 1200);
+    }
   };
 
   const reset = () => {
@@ -194,20 +197,22 @@ export default function TasbeehSheetBody({ onClose }: Props) {
         <View style={styles.ringWrap}>
           <ProgressRing size={260} progress={progress} stroke={6} />
           <View style={styles.ringCenter}>
-            {justCompleted ? (
-              <View style={styles.completedRow}>
+            {/* Bump stays mounted permanently — swapping it out via a ternary
+                would tear it down mid-animation on the exact tap that
+                completes a cycle, right as its Reanimated sequence starts. */}
+            <View style={{ opacity: justCompleted ? 0 : 1 }} pointerEvents={justCompleted ? 'none' : 'auto'}>
+              <Bump value={count}>
+                <Text style={styles.count} testID="tasbeeh-count">
+                  {count}
+                </Text>
+              </Bump>
+              <Text style={styles.target}>/ {selected.target}</Text>
+            </View>
+            {justCompleted && (
+              <View style={[styles.completedRow, StyleSheet.absoluteFillObject]}>
                 <CheckIcon size={28} />
                 <Text style={styles.completedText}>complete</Text>
               </View>
-            ) : (
-              <>
-                <Bump value={count}>
-                  <Text style={styles.count} testID="tasbeeh-count">
-                    {count}
-                  </Text>
-                </Bump>
-                <Text style={styles.target}>/ {selected.target}</Text>
-              </>
             )}
           </View>
         </View>
@@ -313,7 +318,7 @@ const styles = StyleSheet.create({
     color: Colors.gold,
     marginTop: -4,
   },
-  completedRow: { alignItems: 'center', gap: 6 },
+  completedRow: { alignItems: 'center', justifyContent: 'center', gap: 6 },
   completedText: {
     fontFamily: Fonts.label,
     color: Colors.gold,

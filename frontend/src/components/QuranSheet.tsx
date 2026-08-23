@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, Platform, Share, Pressable,
+  ActivityIndicator, Platform, Share, Pressable, ScrollView,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
-import { api, SurahMeta, SurahDetail, Ayah } from '../api';
+import { api, SurahMeta, SurahDetail, Ayah, Reciter } from '../api';
 import { logError } from '../log';
 import { playAudio, stopAudio } from '../audio';
 import {
@@ -15,6 +15,8 @@ import {
 
 const LAST_READ_KEY = 'quranLastRead';
 const SCRIPT_KEY = 'quranScript';
+const RECITER_KEY = 'quranReciter';
+const DEFAULT_RECITER = 'alafasy';
 
 type LastRead = { surah: number; surahName: string; ayah: number };
 type ScriptStyle = 'uthmani' | 'indopak';
@@ -40,6 +42,8 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
   const [savedRefs, setSavedRefs] = useState<Set<string>>(new Set());
   const [lastRead, setLastRead] = useState<LastRead | null>(null);
   const [script, setScript] = useState<ScriptStyle>('uthmani');
+  const [reciter, setReciter] = useState<string>(DEFAULT_RECITER);
+  const [reciters, setReciters] = useState<Reciter[]>([]);
 
   const userIdRef = useRef<string | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
@@ -47,6 +51,8 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
   detailRef.current = detail;
   const scriptRef = useRef<ScriptStyle>(script);
   scriptRef.current = script;
+  const reciterRef = useRef<string>(reciter);
+  reciterRef.current = reciter;
 
   useEffect(() => {
     (async () => {
@@ -55,6 +61,10 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
         const s = (await AsyncStorage.getItem(SCRIPT_KEY)) as ScriptStyle | null;
         if (s === 'uthmani' || s === 'indopak') setScript(s);
       } catch (e) { logError('quran.scriptLoad', e); }
+      try {
+        const r = await AsyncStorage.getItem(RECITER_KEY);
+        if (r) { setReciter(r); reciterRef.current = r; }
+      } catch (e) { logError('quran.reciterLoad', e); }
       try {
         const lr = await AsyncStorage.getItem(LAST_READ_KEY);
         if (lr) setLastRead(JSON.parse(lr));
@@ -66,6 +76,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
         logError('quran.surahs', e);
         setListError(true);
       }
+      api.quranReciters().then(setReciters).catch((e) => logError('quran.reciters', e));
       setLoadingList(false);
     })();
     return () => { stopAudio(); };
@@ -96,7 +107,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
     setSurahError(false);
     setLoadingSurah(true);
     try {
-      const d = await api.quranSurah(n, 'en.sahih', scriptRef.current);
+      const d = await api.quranSurah(n, 'en.sahih', scriptRef.current, reciterRef.current);
       setDetail(d);
       persistLastRead(n, d.englishName, resumeAyah ?? 1);
       if (resumeAyah && resumeAyah > 1) {
@@ -134,10 +145,34 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       setPlayingAyah(null);
       setLoadingSurah(true);
       try {
-        const nd = await api.quranSurah(d.number, 'en.sahih', s);
+        const nd = await api.quranSurah(d.number, 'en.sahih', s, reciterRef.current);
         setDetail(nd);
       } catch (e) {
         logError('quran.changeScript', e);
+        setSurahError(true);
+      }
+      setLoadingSurah(false);
+    }
+  }, []);
+
+  // Switch reciter and re-fetch the open surah's audio URLs (text is unaffected,
+  // so this is cheap — same alquran.cloud text, new everyayah.com audio path).
+  const changeReciter = useCallback(async (id: string) => {
+    if (id === reciterRef.current) return;
+    haptic();
+    reciterRef.current = id;
+    setReciter(id);
+    AsyncStorage.setItem(RECITER_KEY, id).catch((e) => logError('quran.reciterSave', e));
+    const d = detailRef.current;
+    if (d) {
+      stopAudio();
+      setPlayingAyah(null);
+      setLoadingSurah(true);
+      try {
+        const nd = await api.quranSurah(d.number, 'en.sahih', scriptRef.current, id);
+        setDetail(nd);
+      } catch (e) {
+        logError('quran.changeReciter', e);
         setSurahError(true);
       }
       setLoadingSurah(false);
@@ -351,6 +386,33 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
         </View>
       </View>
 
+      {reciters.length > 0 && (
+        <View style={styles.reciterStrip}>
+          <Text style={styles.scriptLabel}>RECITER</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: Spacing.xs }}
+          >
+            {reciters.map((r) => {
+              const active = reciter === r.id;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  onPress={() => changeReciter(r.id)}
+                  style={[styles.reciterChip, active && styles.reciterChipActive]}
+                  testID={`quran-reciter-${r.id}`}
+                >
+                  <Text style={[styles.reciterChipText, active && styles.reciterChipTextActive]}>
+                    {r.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       {loadingSurah ? (
         <View style={styles.loading}><ActivityIndicator color={Colors.gold} /></View>
       ) : surahError || !detail ? (
@@ -497,6 +559,19 @@ const styles = StyleSheet.create({
   segBtnActive: { backgroundColor: Colors.hover, borderWidth: 1, borderColor: Colors.gold },
   segText: { fontFamily: Fonts.bodyMedium, fontSize: 12, color: Colors.textSecondary, letterSpacing: 0.3 },
   segTextActive: { color: Colors.gold },
+  reciterStrip: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: Colors.borderSubtle,
+  },
+  reciterChip: {
+    paddingHorizontal: Spacing.md, paddingVertical: 6,
+    borderRadius: Radius.pill, borderWidth: 1, borderColor: Colors.borderSubtle,
+    backgroundColor: Colors.surface,
+  },
+  reciterChipActive: { borderColor: Colors.gold, backgroundColor: Colors.hover },
+  reciterChipText: { fontFamily: Fonts.bodyMedium, fontSize: 12, color: Colors.textSecondary },
+  reciterChipTextActive: { color: Colors.gold },
   bismillahWrap: { alignItems: 'center', paddingVertical: Spacing.lg },
   bismillah: { fontFamily: Fonts.arabic, fontSize: 26, color: Colors.gold, textAlign: 'center', lineHeight: 44 },
   bismillahRule: { width: 60, height: 1, backgroundColor: Colors.gold, opacity: 0.3, marginTop: Spacing.sm },
