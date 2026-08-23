@@ -2,22 +2,21 @@
  * Nabah · Motion system
  *
  * A small, reusable set of premium-feeling primitives built on React Native's
- * built-in Animated API (the project has no Reanimated babel plugin, so we stay
- * on Animated — native-driven for transform/opacity, 60fps, zero config).
+ * built-in Animated API — native-driven for transform/opacity, 60fps, zero
+ * config. Deliberately not Reanimated: these are discrete, JS-thread-triggered
+ * animations (button presses, entrances, value pops), not continuous
+ * gesture-driven ones, so they don't need UI-thread worklets. Reanimated is
+ * used elsewhere only where that's actually required (Sheet.tsx's drag
+ * gesture) — see Bump's comment for why mixing it in here caused a crash.
  *
  *   <AmbientField/>      — a slow, breathing gold aura for hero surfaces
  *   <FadeInUp delay>     — staggered entrance (fade + rise)
  *   <PressableScale>     — tactile spring on press
  *   <Shimmer/>           — a drifting highlight line
+ *   <Bump value>         — tactile scale-pop whenever `value` changes
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Easing, Pressable, StyleSheet, View, ViewStyle } from 'react-native';
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { Colors } from './theme';
 
@@ -112,7 +111,12 @@ export function FadeInUp({
 // ─────────────────────────── Bump (spring pop on value change) ───────────────────────────
 // Gives a live number/badge a tactile heartbeat: whenever `value` changes it
 // pops in scale and springs back. Skips the mount so it only fires on change.
-// Reanimated-driven (UI thread) so it stays crisp under rapid taps.
+// Plain Animated (JS thread), not Reanimated — a Reanimated worklet here (an
+// inline animation callback, or withSequence before it) was the cause of a
+// crash: an uncaught JS exception thrown from a UI-thread JSI call into
+// Hermes, confirmed from a device crash log. Discrete tap-triggered pops
+// don't need UI-thread sync the way Sheet.tsx's drag gesture does, so this
+// sidesteps the whole class of risk rather than chasing the exact worklet bug.
 export function Bump({
   value,
   children,
@@ -125,7 +129,7 @@ export function Bump({
   peak?: number;
 }) {
   const reduced = useReducedMotion();
-  const s = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -133,16 +137,23 @@ export function Bump({
       return;
     }
     if (reduced) return; // no pop under reduced motion
-    // withTiming's completion callback chains into the settle spring on the UI
-    // thread — deliberately not withSequence, which Tasbeeh was the app's only
-    // user of and the one screen that crashed on interaction.
-    s.value = withTiming(peak, { duration: 80, easing: Easing.out(Easing.quad) }, (finished) => {
-      'worklet';
-      if (finished) s.value = withSpring(1, SPRINGS.tactile);
-    });
-  }, [value, peak, s, reduced]);
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
-  return <Reanimated.View style={[style, anim]}>{children}</Reanimated.View>;
+    Animated.sequence([
+      Animated.timing(scale, {
+        toValue: peak,
+        duration: 80,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        damping: SPRINGS.tactile.damping,
+        stiffness: SPRINGS.tactile.stiffness,
+        mass: SPRINGS.tactile.mass,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [value, peak, scale, reduced]);
+  return <Animated.View style={[style, { transform: [{ scale }] }]}>{children}</Animated.View>;
 }
 
 // ─────────────────────────── PressableScale ───────────────────────────
