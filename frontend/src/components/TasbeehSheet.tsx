@@ -126,110 +126,119 @@ export default function TasbeehSheetBody({ onClose }: Props) {
         <Text style={styles.title}>Tasbeeh</Text>
       </View>
 
+      {/* Everything below the title scrolls — without this, the custom-dhikr
+          form opening at the same time as the keyboard leaves no room for the
+          (fixed-size, non-shrinking) counter ring, and they visually collide. */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.sm }}
-        style={{ flexGrow: 0 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        {dhikrChips}
-        <TouchableOpacity
-          testID="tasbeeh-custom-btn"
-          onPress={() => setShowCustom(!showCustom)}
-          style={[styles.chip, showCustom && styles.chipActive]}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: Spacing.lg, gap: Spacing.sm }}
+          style={{ flexGrow: 0 }}
         >
-          <Text style={[styles.chipText, showCustom && { color: Colors.gold }]}>Custom</Text>
-        </TouchableOpacity>
-      </ScrollView>
+          {dhikrChips}
+          <TouchableOpacity
+            testID="tasbeeh-custom-btn"
+            onPress={() => setShowCustom(!showCustom)}
+            style={[styles.chip, showCustom && styles.chipActive]}
+          >
+            <Text style={[styles.chipText, showCustom && { color: Colors.gold }]}>Custom</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
-      {showCustom && (
-        <View style={styles.customBox}>
-          <TextInput
-            value={customEn}
-            onChangeText={setCustomEn}
-            placeholder="Your dhikr (English)"
-            placeholderTextColor={Colors.textDim}
-            style={styles.customInput}
-          />
-          <TextInput
-            value={customAr}
-            onChangeText={setCustomAr}
-            placeholder="Your dhikr (Arabic, optional)"
-            placeholderTextColor={Colors.textDim}
-            style={[styles.customInput, { fontFamily: Fonts.arabic, fontSize: 18, textAlign: 'right' }]}
-          />
-          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+        {showCustom && (
+          <View style={styles.customBox}>
             <TextInput
-              value={customTarget}
-              onChangeText={setCustomTarget}
-              keyboardType="number-pad"
-              placeholder="Target"
+              value={customEn}
+              onChangeText={setCustomEn}
+              placeholder="Your dhikr (English)"
               placeholderTextColor={Colors.textDim}
-              style={[styles.customInput, { flex: 1 }]}
+              style={styles.customInput}
             />
-            <TouchableOpacity
-              onPress={() => {
-                const t = parseInt(customTarget, 10);
-                if (!customEn.trim() || !t || t < 1) return;
-                setSelected({
-                  id: 'custom',
-                  en: customEn.trim(),
-                  ar: customAr.trim() || customEn.trim(),
-                  target: t,
-                });
-                setCount(0);
-                setShowCustom(false);
-              }}
-              style={styles.customApply}
-            >
-              <Text style={styles.customApplyText}>Use</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      <Pressable
-        onPress={handleIncrement}
-        testID="tasbeeh-tap-zone"
-        style={styles.tapZone}
-        android_ripple={{ color: Colors.goldRipple, borderless: true, radius: 160 }}
-      >
-        <View style={styles.ringWrap}>
-          <ProgressRing size={260} progress={progress} stroke={6} />
-          <View style={styles.ringCenter}>
-            {/* Bump stays mounted permanently — swapping it out via a ternary
-                would tear it down mid-animation on the exact tap that
-                completes a cycle, right as its Reanimated sequence starts. */}
-            <View style={{ opacity: justCompleted ? 0 : 1 }} pointerEvents={justCompleted ? 'none' : 'auto'}>
-              <Bump value={count}>
-                <Text style={styles.count} testID="tasbeeh-count">
-                  {count}
-                </Text>
-              </Bump>
-              <Text style={styles.target}>/ {selected.target}</Text>
+            <TextInput
+              value={customAr}
+              onChangeText={setCustomAr}
+              placeholder="Your dhikr (Arabic, optional)"
+              placeholderTextColor={Colors.textDim}
+              style={[styles.customInput, { fontFamily: Fonts.arabic, fontSize: 18, textAlign: 'right' }]}
+            />
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              <TextInput
+                value={customTarget}
+                onChangeText={setCustomTarget}
+                keyboardType="number-pad"
+                placeholder="Target"
+                placeholderTextColor={Colors.textDim}
+                style={[styles.customInput, { flex: 1 }]}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  const t = parseInt(customTarget, 10);
+                  if (!customEn.trim() || !t || t < 1) return;
+                  setSelected({
+                    id: 'custom',
+                    en: customEn.trim(),
+                    ar: customAr.trim() || customEn.trim(),
+                    target: t,
+                  });
+                  setCount(0);
+                  setShowCustom(false);
+                }}
+                style={styles.customApply}
+              >
+                <Text style={styles.customApplyText}>Use</Text>
+              </TouchableOpacity>
             </View>
-            {justCompleted && (
-              <View style={[styles.completedRow, StyleSheet.absoluteFillObject]}>
-                <CheckIcon size={28} />
-                <Text style={styles.completedText}>complete</Text>
-              </View>
-            )}
           </View>
-        </View>
-        <Text style={styles.dhikrAr}>{selected.ar}</Text>
-        <Text style={styles.dhikrEn}>{selected.en}</Text>
-      </Pressable>
+        )}
 
-      <View style={styles.footerRow}>
-        <Bump value={session}>
-          <Text style={styles.sessionText} testID="tasbeeh-session">
-            Session  ·  {session}
-          </Text>
-        </Bump>
-        <TouchableOpacity onPress={reset} testID="tasbeeh-reset-btn" style={styles.resetBtn}>
-          <Text style={styles.resetText}>Reset</Text>
-        </TouchableOpacity>
-      </View>
+        <Pressable
+          onPress={handleIncrement}
+          testID="tasbeeh-tap-zone"
+          style={styles.tapZone}
+          android_ripple={{ color: Colors.goldRipple, borderless: true, radius: 160 }}
+        >
+          <View style={styles.ringWrap}>
+            <ProgressRing size={260} progress={progress} stroke={6} />
+            <View style={styles.ringCenter}>
+              {/* Bump stays mounted permanently — swapping it out via a ternary
+                  would tear it down mid-animation on the exact tap that
+                  completes a cycle, right as its Reanimated sequence starts. */}
+              <View style={{ opacity: justCompleted ? 0 : 1 }} pointerEvents={justCompleted ? 'none' : 'auto'}>
+                <Bump value={count}>
+                  <Text style={styles.count} testID="tasbeeh-count">
+                    {count}
+                  </Text>
+                </Bump>
+                <Text style={styles.target}>/ {selected.target}</Text>
+              </View>
+              {justCompleted && (
+                <View style={[styles.completedRow, StyleSheet.absoluteFillObject]}>
+                  <CheckIcon size={28} />
+                  <Text style={styles.completedText}>complete</Text>
+                </View>
+              )}
+            </View>
+          </View>
+          <Text style={styles.dhikrAr}>{selected.ar}</Text>
+          <Text style={styles.dhikrEn}>{selected.en}</Text>
+        </Pressable>
+
+        <View style={styles.footerRow}>
+          <Bump value={session}>
+            <Text style={styles.sessionText} testID="tasbeeh-session">
+              Session  ·  {session}
+            </Text>
+          </Bump>
+          <TouchableOpacity onPress={reset} testID="tasbeeh-reset-btn" style={styles.resetBtn}>
+            <Text style={styles.resetText}>Reset</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
