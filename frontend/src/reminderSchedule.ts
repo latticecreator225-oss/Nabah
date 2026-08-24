@@ -19,6 +19,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { PrayerTimes, NotifPrefs } from './api';
+import { getAdhanEnabled, readBells } from './adhan';
 import { logError } from './log';
 
 const CHANNEL = 'reminders';
@@ -61,6 +62,7 @@ async function ensureChannel() {
     name: 'Reminders',
     importance: Notifications.AndroidImportance.HIGH,
     sound: 'default',
+    vibrationPattern: [0, 250, 250, 250],
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   });
 }
@@ -122,6 +124,11 @@ async function daily(id: string, at: [number, number] | null, c: Content) {
     content: {
       title: c.title,
       body: c.body,
+      // Without this, iOS shows the notification but plays no sound at all
+      // (and, tied to that, no vibration when silenced) — every reminder in
+      // this module was silent. `true` = the system default notification
+      // sound; the Android channel below carries its own sound + vibration.
+      sound: true,
       data: { deeplink: c.open ? `nabah:///home?open=${c.open}` : 'nabah:///home' },
       ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}),
     },
@@ -136,6 +143,7 @@ async function weekly(id: string, weekday: number, at: [number, number] | null, 
     content: {
       title: c.title,
       body: c.body,
+      sound: true,
       data: { deeplink: c.open ? `nabah:///home?open=${c.open}` : 'nabah:///home' },
       ...(Platform.OS === 'android' ? { channelId: CHANNEL } : {}),
     },
@@ -159,14 +167,22 @@ export async function scheduleReminders(
 
     const preMin = Math.max(0, Number(prefs.pre_adhan_minutes) || 0);
 
-    // Fard nudges + pre-adhan
+    // Fard nudges + pre-adhan. Where the adhan is enabled for a given prayer,
+    // adhanSchedule.ts already fires a notification at that exact time — skip
+    // the plain nudge there so "Adhan" is a single default-vs-adhan choice
+    // per prayer, not two separate notifications stacking at the same time.
+    const adhanOn = await getAdhanEnabled();
+    const bells = adhanOn ? await readBells() : {};
     for (const p of Object.keys(FARD_PREF) as PrayerKey[]) {
       if (!prefs[FARD_PREF[p]]) continue;
       const t = times[p];
       if (!t) continue;
-      await daily(`${ID_PREFIX}fard-${p}`, hm(t), {
-        title: `${p} · ${AR[p]}`, body: FARD_BODY[p], open: 'prayers',
-      });
+      const adhanCoversThis = adhanOn && bells[p] !== false;
+      if (!adhanCoversThis) {
+        await daily(`${ID_PREFIX}fard-${p}`, hm(t), {
+          title: `${p} · ${AR[p]}`, body: FARD_BODY[p], open: 'prayers',
+        });
+      }
       if (preMin > 0) {
         await daily(`${ID_PREFIX}preadhan-${p}`, addMinutes(t, -preMin), {
           title: `${p} approaches`,
