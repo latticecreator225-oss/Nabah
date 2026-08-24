@@ -199,10 +199,12 @@ export async function scheduleReminders(
       }
     }
 
-    // Contextual sunnahs (fixed hours)
-    if (prefs.sunnah_household) await daily(`${ID_PREFIX}sunnah-household`, [12, 0], { ...SUNNAH.household, open: 'sunnah' });
-    if (prefs.sunnah_public) await daily(`${ID_PREFIX}sunnah-public`, [9, 0], { ...SUNNAH.public, open: 'sunnah' });
-    if (prefs.sunnah_work) await daily(`${ID_PREFIX}sunnah-work`, [14, 0], { ...SUNNAH.work, open: 'sunnah' });
+    // Contextual sunnahs (fixed hours). `sunnah:<demographic>` tells the Sunnah
+    // sheet which section to open straight to, instead of the generic dashboard
+    // (which shows an unrelated "sunnah of the hour" once the hour has moved on).
+    if (prefs.sunnah_household) await daily(`${ID_PREFIX}sunnah-household`, [12, 0], { ...SUNNAH.household, open: 'sunnah:household' });
+    if (prefs.sunnah_public) await daily(`${ID_PREFIX}sunnah-public`, [9, 0], { ...SUNNAH.public, open: 'sunnah:public' });
+    if (prefs.sunnah_work) await daily(`${ID_PREFIX}sunnah-work`, [14, 0], { ...SUNNAH.work, open: 'sunnah:work' });
 
     // Weekly / nightly observances
     if (prefs.reminder_surah_mulk)

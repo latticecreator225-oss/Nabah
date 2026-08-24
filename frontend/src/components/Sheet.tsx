@@ -83,8 +83,16 @@ export default function Sheet({ visible, onClose, children, testID, height }: Pr
     })
     .onEnd((e) => {
       if (e.translationY > targetH * DISMISS_DISTANCE_FRAC || e.velocityY > DISMISS_VELOCITY) {
-        // Let the parent flip `visible` → our effect animates out + unmounts.
-        runOnJS(onClose)();
+        // Start the exit animation right here, on the UI thread, carrying the
+        // release velocity through — not by calling onClose() and waiting for
+        // the `visible` prop to round-trip through React state and back into
+        // the effect below. That round trip is a real frame or more of dead
+        // time between the finger lifting and the sheet actually moving,
+        // which is exactly what reads as "laggy." onClose only fires once the
+        // motion has visually finished, to update the parent's state/unmount.
+        y.value = withSpring(HIDDEN, { ...SPRINGS.tactile, velocity: e.velocityY }, (finished) => {
+          if (finished) runOnJS(onClose)();
+        });
       } else {
         y.value = withSpring(0, SPRINGS.tactile);
       }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -42,6 +42,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [ambientOn, setAmbientOn] = useState(false);
   const [ambientLoading, setAmbientLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     api.emotions().then(setEmotions).catch(() => {});
@@ -105,6 +106,12 @@ export default function FeelingsSheetBody({ onClose }: Props) {
       }
       const resp = await api.emotionAyah(key, uid, refresh, seen);
       setAyah(resp);
+      if (!refresh) {
+        // Scroll the new ayah into view — otherwise, on a grid taller than the
+        // screen, the answer to "which ayah?" loads off-screen below the fold.
+        // A short delay lets the card's entrance layout settle first.
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 220);
+      }
       if (typeof resp.index === 'number') {
         // Start a fresh cycle when the backend signals the pool was exhausted.
         const nextSeen = resp.cycle_reset ? [resp.index] : [...seen, resp.index];
@@ -153,6 +160,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
   return (
     <View style={styles.root} testID="feelings-sheet">
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingBottom: Spacing.xl }}
         showsVerticalScrollIndicator={false}
       >

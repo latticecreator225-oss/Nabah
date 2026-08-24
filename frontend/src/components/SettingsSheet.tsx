@@ -33,7 +33,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
   const [gender, setGender] = useState<Gender>('unspecified');
   const [calcMethod, setCalcMethod] = useState<number | null>(null);
   const [asrSchool, setAsrSchool] = useState<number>(0);
-  const [adhanOn, setAdhanOn] = useState(true);
+  const [adhanOn, setAdhanOn] = useState(false);
   const [muezzinId, setMuezzinIdState] = useState<string>(MUEZZINS[0].id);
   const [previewing, setPreviewing] = useState<string | null>(null);
 

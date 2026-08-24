@@ -28,7 +28,17 @@ type Highlight = {
 
 type SunnahView = 'dashboard' | 'library' | 'category';
 
-export default function SunnahSheetBody() {
+// Matches the titles used in reminderSchedule.ts's SUNNAH reminder content,
+// so what a notification said and what opening it shows read as the same thing.
+const DEMOGRAPHIC_TITLES: Record<string, string> = {
+  household: 'At home',
+  public: 'Among people',
+  work: 'Before you begin',
+};
+
+type Props = { initialDemographic?: string | null };
+
+export default function SunnahSheetBody({ initialDemographic }: Props) {
   const [view, setView] = useState<SunnahView>('dashboard');
   const [hero, setHero] = useState<Sunnah | null>(null);
   const [carousel, setCarousel] = useState<Sunnah[]>([]);
@@ -67,6 +77,42 @@ export default function SunnahSheetBody() {
       setLoading(false);
     })();
   }, []);
+
+  // Sheets in this app mount once for the whole session (Home always renders
+  // every <Sheet>; only native visibility toggles) — so this can't live in the
+  // mount effect above, which only ever runs once. Reacts to the prop actually
+  // changing: a notification tap sets it, opening straight to that demographic
+  // instead of the generic dashboard; closing and reopening normally clears it
+  // back to null here, which resets the view rather than leaving stale content.
+  const prevDemoRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (initialDemographic === prevDemoRef.current) return;
+    prevDemoRef.current = initialDemographic ?? null;
+    if (!initialDemographic) {
+      setView('dashboard');
+      setActiveCat(null);
+      return;
+    }
+    if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+    (async () => {
+      try {
+        const list = await fetch(
+          `${API}/sunnahs?demographic=${initialDemographic}${userId ? `&user_id=${userId}` : ''}`,
+        ).then((r) => r.json());
+        setItems(list);
+        setActiveCat({
+          id: initialDemographic,
+          title: DEMOGRAPHIC_TITLES[initialDemographic] || 'For you',
+          subtitle: '',
+          monogram: '·',
+          count: Array.isArray(list) ? list.length : 0,
+        });
+        setView('category');
+      } catch (e) {
+        logError('sunnah.deeplink', e);
+      }
+    })();
+  }, [initialDemographic, userId]);
 
   const openCategory = async (c: Cat) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});

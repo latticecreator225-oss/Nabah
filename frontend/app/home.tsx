@@ -90,6 +90,10 @@ export default function Home() {
     null | 'tasbeeh' | 'feelings' | 'azkar' | 'prayers' | 'settings' | 'sunnah' | 'rhythms' | 'bookmarks' | 'notifications' | 'qibla' | 'quran' | 'duas' | 'hadith'
   >(null);
   const [quranLastRead, setQuranLastRead] = useState<{ surah: number; surahName: string; ayah: number } | null>(null);
+  // Sub-target from a notification deep link (e.g. `open=sunnah:household` →
+  // 'household'), so the destination sheet can open straight to what the
+  // notification was actually about instead of its generic default view.
+  const [sunnahDemographic, setSunnahDemographic] = useState<string | null>(null);
   const tickRef = useRef<any>(null);
   const prevNextRef = useRef<PrayerKey | null>(null);
 
@@ -185,10 +189,13 @@ export default function Home() {
   // target fires again.
   useEffect(() => {
     const raw = params?.open;
-    const target = Array.isArray(raw) ? raw[0] : raw;
-    if (!target) return;
+    const full = Array.isArray(raw) ? raw[0] : raw;
+    if (!full) return;
+    // "sunnah:household" → sheet "sunnah", sub-target "household".
+    const [target, sub] = full.split(':');
     if ((OPENABLE_SHEETS as readonly string[]).includes(target)) {
       setSheet(target as typeof sheet);
+      setSunnahDemographic(target === 'sunnah' && sub ? sub : null);
     }
     router.setParams({ open: undefined } as any);
   }, [params?.open, router]);
@@ -298,6 +305,9 @@ export default function Home() {
 
   const openSheet = useCallback((s: typeof sheet) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+    // A manual tap always means "the normal view" — only the notification
+    // deep-link effect (above) sets a sub-target.
+    setSunnahDemographic(null);
     setSheet(s);
   }, []);
 
@@ -574,7 +584,7 @@ export default function Home() {
         <SettingsSheetBody onClose={close} />
       </Sheet>
       <Sheet visible={sheet === 'sunnah'} onClose={close} testID="sheet-sunnah">
-        <SunnahSheetBody />
+        <SunnahSheetBody initialDemographic={sunnahDemographic} />
       </Sheet>
       <Sheet visible={sheet === 'rhythms'} onClose={close} testID="sheet-rhythms">
         <RhythmsSheetBody />

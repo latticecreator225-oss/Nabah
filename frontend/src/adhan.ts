@@ -32,7 +32,7 @@ const MUEZZIN_KEY = 'adhanMuezzin';
 
 export async function getAdhanEnabled(): Promise<boolean> {
   const v = await AsyncStorage.getItem(ENABLED_KEY);
-  return v == null ? true : v === '1'; // default ON
+  return v == null ? false : v === '1'; // default OFF — plain system notification unless opted in
 }
 
 export async function setAdhanEnabled(on: boolean): Promise<void> {
