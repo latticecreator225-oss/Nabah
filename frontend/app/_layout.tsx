@@ -24,6 +24,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { GreatVibes_400Regular } from '@expo-google-fonts/great-vibes';
 import { Colors } from '../src/theme';
+import { TextScaleProvider } from '../src/textScale';
 
 // ─────── Foreground handler (module scope, web-guarded) ───────
 if (Platform.OS !== 'web') {
@@ -111,14 +112,16 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.bgPrimary },
-            animation: 'fade',
-          }}
-        />
+        <TextScaleProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: Colors.bgPrimary },
+              animation: 'fade',
+            }}
+          />
+        </TextScaleProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -22,6 +22,7 @@ import {
 } from '../adhan';
 import { cancelAdhanSchedule } from '../adhanSchedule';
 import { FadeInUp } from '../motion';
+import { TEXT_SIZES, TextSizeId, scaleOf, useTextScaleSetting } from '../textScale';
 import { PlayIcon, PauseIcon } from './Icons';
 
 type Gender = 'male' | 'female' | 'unspecified';
@@ -36,6 +37,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
   const [adhanOn, setAdhanOn] = useState(false);
   const [muezzinId, setMuezzinIdState] = useState<string>(MUEZZINS[0].id);
   const [previewing, setPreviewing] = useState<string | null>(null);
+  const { sizeId, setSizeId } = useTextScaleSetting();
 
   useEffect(() => {
     (async () => {
@@ -70,6 +72,11 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
       // Tear down scheduled calls now; home reschedules on close when turned on.
       cancelAdhanSchedule().catch((e) => logError('settings.cancelSchedule', e));
     }
+    if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+  };
+
+  const chooseTextSize = (id: TextSizeId) => {
+    setSizeId(id);
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
   };
 
@@ -305,6 +312,41 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
         )}
       </Section>
 
+      <Section title="READING" delay={260}>
+        <Text style={styles.label}>Text size</Text>
+        <Text style={styles.rowSub}>
+          Sets the size of Arabic, transliteration and translation across the Quran,
+          Duas, Adhkar, Hadith and Feelings.
+        </Text>
+        <View style={styles.sizeRow}>
+          {TEXT_SIZES.map((t) => {
+            const active = sizeId === t.id;
+            return (
+              <TouchableOpacity
+                key={t.id}
+                onPress={() => chooseTextSize(t.id)}
+                style={[styles.sizePill, active && styles.sizePillActive]}
+                testID={`settings-textsize-${t.id}`}
+                activeOpacity={0.85}
+              >
+                <Text
+                  style={[
+                    styles.sizePillText,
+                    { fontSize: Math.round(13 * t.scale) },
+                    active && { color: Colors.gold },
+                  ]}
+                >
+                  {t.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={[styles.sizePreview, { fontSize: Math.round(15 * scaleOf(sizeId)), lineHeight: Math.round(26 * scaleOf(sizeId)) }]}>
+          Indeed, with hardship comes ease.
+        </Text>
+      </Section>
+
       <TouchableOpacity style={styles.cta} onPress={save} testID="settings-save-btn">
         <Text style={styles.ctaText}>Save changes</Text>
       </TouchableOpacity>
@@ -337,6 +379,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: Fonts.label, fontSize: 10, color: Colors.textDim, letterSpacing: 2.4, marginBottom: Spacing.sm },
   sectionBody: { backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.borderSubtle, borderRadius: Radius.lg, padding: Spacing.md },
   label: { fontFamily: Fonts.label, fontSize: 10, letterSpacing: 1.6, color: Colors.textDim, marginBottom: 4 },
+  sizeRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.md },
+  sizePill: {
+    flex: 1, paddingVertical: 10, paddingHorizontal: 4, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderSubtle, backgroundColor: Colors.surface,
+    alignItems: 'center', justifyContent: 'center', minHeight: 48,
+  },
+  sizePillActive: { borderColor: Colors.gold, backgroundColor: Colors.hover },
+  sizePillText: { fontFamily: Fonts.bodyMedium, color: Colors.textSecondary, textAlign: 'center' },
+  sizePreview: {
+    fontFamily: Fonts.displayItalic, color: Colors.textSecondary,
+    marginTop: Spacing.md, paddingTop: Spacing.md,
+    borderTopWidth: 1, borderTopColor: Colors.borderSubtle,
+  },
   input: {
     backgroundColor: Colors.surface, color: Colors.textPrimary, fontFamily: Fonts.body, fontSize: 15,
     paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm + 4, borderRadius: Radius.sm,

@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, DuaCategory, DuaCategoryDetail, Dua } from '../api';
 import { logError } from '../log';
+import { useTextScale } from '../textScale';
 import { FadeInUp } from '../motion';
 import { HeartIcon, ShareIcon } from './Icons';
 
@@ -18,6 +19,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const FAV_KEY = 'duaFavorites';
 
 export default function DuasSheetBody() {
+  const ts = useTextScale();
   const [categories, setCategories] = useState<DuaCategory[]>([]);
   const [active, setActive] = useState<DuaCategoryDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,12 +136,12 @@ export default function DuasSheetBody() {
                     <View style={styles.countPill}><Text style={styles.countPillText}>× {d.count}</Text></View>
                   ) : null}
                 </View>
-                <Text style={styles.duaAr} selectable>{d.arabic}</Text>
+                <Text style={[styles.duaAr, ts(styles.duaAr)]} selectable>{d.arabic}</Text>
                 {showTranslit && d.transliteration ? (
-                  <Text style={styles.duaTranslit} selectable>{d.transliteration}</Text>
+                  <Text style={[styles.duaTranslit, ts(styles.duaTranslit)]} selectable>{d.transliteration}</Text>
                 ) : null}
                 <View style={styles.hairline} />
-                <Text style={styles.duaEn} selectable>{d.translation}</Text>
+                <Text style={[styles.duaEn, ts(styles.duaEn)]} selectable>{d.translation}</Text>
                 {d.virtue ? <Text style={styles.duaVirtue}>{d.virtue}</Text> : null}
                 <View style={styles.duaFooter}>
                   <Text style={styles.duaRef}>{d.reference}</Text>

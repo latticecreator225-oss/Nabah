@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, SurahMeta, SurahDetail, Ayah, Reciter } from '../api';
 import { logError } from '../log';
+import { useTextScale } from '../textScale';
 import { playAudio, stopAudio } from '../audio';
 import {
   PlayIcon, PauseIcon, BookmarkIcon, ShareIcon, SearchIcon, CheckIcon,
@@ -27,6 +28,7 @@ function toArabicNum(n: number): string {
 }
 
 export default function QuranSheetBody({ active = true }: { active?: boolean }) {
+  const ts = useTextScale();
   const [view, setView] = useState<'index' | 'reader'>('index');
   const [surahs, setSurahs] = useState<SurahMeta[]>([]);
   const [query, setQuery] = useState('');
@@ -448,15 +450,15 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
             return (
               <View style={[styles.ayahCard, isPlaying && styles.ayahCardPlaying]} testID={`ayah-${item.number}`}>
                 <View style={styles.ayahArRow}>
-                  <Text style={styles.ayahAr} selectable>
+                  <Text style={[styles.ayahAr, ts(styles.ayahAr)]} selectable>
                     {item.arabic}
                     <Text style={styles.ayahEndMark}>{'  ﴿' + toArabicNum(item.number) + '﴾'}</Text>
                   </Text>
                 </View>
                 {showTranslit && item.transliteration ? (
-                  <Text style={styles.ayahTranslit} selectable>{item.transliteration}</Text>
+                  <Text style={[styles.ayahTranslit, ts(styles.ayahTranslit)]} selectable>{item.transliteration}</Text>
                 ) : null}
-                <Text style={styles.ayahEn} selectable>{item.english}</Text>
+                <Text style={[styles.ayahEn, ts(styles.ayahEn)]} selectable>{item.english}</Text>
                 <View style={styles.ayahActions}>
                   <Text style={styles.ayahRef}>{detail.number}:{item.number}</Text>
                   <View style={{ flex: 1 }} />

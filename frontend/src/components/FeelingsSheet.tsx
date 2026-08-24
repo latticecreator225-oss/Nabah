@@ -17,6 +17,7 @@ import { playAudio, stopAudio } from '../audio';
 import { logError } from '../log';
 import { notify } from '../alerts';
 import { FadeInUp } from '../motion';
+import { useTextScale } from '../textScale';
 import { HeartIcon, ShareIcon, SparkleIcon, VolumeIcon } from './Icons';
 
 type Props = { onClose: () => void };
@@ -32,6 +33,7 @@ function parseSurahAyah(ref: string): { surah: number; ayah: number } | null {
 }
 
 export default function FeelingsSheetBody({ onClose }: Props) {
+  const ts = useTextScale();
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [ayah, setAyah] = useState<AyahResp | null>(null);
@@ -217,9 +219,9 @@ export default function FeelingsSheetBody({ onClose }: Props) {
                 </TouchableOpacity>
               ) : null}
             </View>
-            <Text style={styles.ayahArabic}>{ayah.arabic}</Text>
+            <Text style={[styles.ayahArabic, ts(styles.ayahArabic)]}>{ayah.arabic}</Text>
             <View style={styles.divider} />
-            <Text style={styles.ayahEnglish}>“{ayah.english}”</Text>
+            <Text style={[styles.ayahEnglish, ts(styles.ayahEnglish)]}>“{ayah.english}”</Text>
 
             {ayah.reflection ? (
               <View style={styles.reflectionBox}>
@@ -227,7 +229,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
                   <SparkleIcon size={12} />
                   <Text style={styles.reflectionLabel}>A WORD FOR YOU</Text>
                 </View>
-                <Text style={styles.reflectionText}>{ayah.reflection}</Text>
+                <Text style={[styles.reflectionText, ts(styles.reflectionText)]}>{ayah.reflection}</Text>
               </View>
             ) : null}
 

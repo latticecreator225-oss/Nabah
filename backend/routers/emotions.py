@@ -76,6 +76,9 @@ def _pick_ayah(
 
 
 async def _generate_reflection(ayah: dict, emotion: str, user_ctx: Optional[dict]) -> str:
+    # The verse's index in its pool doubles as the fallback variant, so a new
+    # verse always comes with different words beside it.
+    variant = int(ayah.get("index") or 0)
     # Ground the model in classical tafsir \u2014 or don't use the model at all.
     # (Grounded-or-static policy: a reflection is either anchored to verified
     # classical exegesis, or it comes from our hand-written fallbacks. The LLM
@@ -86,10 +89,10 @@ async def _generate_reflection(ayah: dict, emotion: str, user_ctx: Optional[dict
         tafsir_text = await asyncio.to_thread(get_tafsir, ref[0], ref[1])
     if not tafsir_text:
         logger.info(f"tafsir unavailable for {ayah.get('reference')} \u2014 using static reflection")
-        return _fallback_reflection(emotion)
+        return _fallback_reflection(emotion, variant)
 
     if not ANTHROPIC_API_KEY:
-        return _fallback_reflection(emotion)
+        return _fallback_reflection(emotion, variant)
 
     try:
         name = (user_ctx or {}).get("name") or "friend"
@@ -132,26 +135,101 @@ async def _generate_reflection(ayah: dict, emotion: str, user_ctx: Optional[dict
             messages=[{"role": "user", "content": prompt}],
         )
         text = "".join(b.text for b in resp.content if b.type == "text").strip().strip('"')
-        return text or _fallback_reflection(emotion)
+        return text or _fallback_reflection(emotion, variant)
     except Exception as e:
         logger.warning(f"LLM reflection failed, using fallback: {e}")
-        return _fallback_reflection(emotion)
+        return _fallback_reflection(emotion, variant)
 
 
-def _fallback_reflection(emotion: str) -> str:
-    fallbacks = {
-        "sad": "Whatever you are carrying right now is not invisible to Him. Sit with this verse \u2014 let it soften the part of you that is tired.",
-        "anxious": "The mind races, but the heart was made for a quieter room. Slow your breath; let His name settle there.",
-        "angry": "Anger is fire that hurts the one who holds it. Mercy is the wider, harder door \u2014 and the one He loves.",
-        "exhausted": "You do not have to outrun the weight. Ease is being woven into the same cloth as the difficulty.",
-        "grateful": "Gratitude is the quietest worship. Speak it gently \u2014 even what you cannot count is counted.",
-        "hopeless": "There is no door He cannot open, no return He refuses. Whatever you are carrying, bring it home.",
-        "happy": "Hold this lightly and thankfully. The favors around you are uncountable; let one of them be noticed.",
-        "restless": "You were not given more than you can carry. Set down what is not yours to hold tonight.",
-        "heartbroken": "Grief is not a sign you were wrong to love. To Him we belong, and to Him is the soft, sure return.",
-        "lonely": "You are not as alone as the silence has made you feel. He is closer than the next breath you will take.",
-    }
-    return fallbacks.get(emotion, "Sit with the verse. Let it find the part of you that needs it most.")
+# Hand-written reflections, several per emotion. Multiple variants matter: without
+# ANTHROPIC_API_KEY set (and whenever tafsir is unavailable for a verse) *every*
+# reflection comes from here, so a single string per emotion meant "A word for you"
+# never changed no matter how many times the reader pressed Another.
+_FALLBACKS: dict[str, list[str]] = {
+    "sad": [
+        "Whatever you are carrying right now is not invisible to Him. Sit with this verse \u2014 let it soften the part of you that is tired.",
+        "Sadness is not a failure of faith. Some griefs are meant to be carried gently, and not alone.",
+        "You are allowed to be heavy today. Nothing about this hides you from the One who is nearest.",
+        "The heart has weather. This will pass through you, and you will still be standing when it does.",
+        "He does not ask you to feel differently before you turn to Him. Come as you are, tired and all.",
+    ],
+    "anxious": [
+        "The mind races, but the heart was made for a quieter room. Slow your breath; let His name settle there.",
+        "Not every thought asking for your attention deserves it. Give this moment only what it actually requires.",
+        "You are trying to hold tomorrow with today's hands. Set it down; it was never yours to carry early.",
+        "Fear grows loud in the dark and small in the light. Bring it into words, and it shrinks.",
+        "You have survived every day that once frightened you from a distance. This one is no different.",
+    ],
+    "angry": [
+        "Anger is fire that hurts the one who holds it. Mercy is the wider, harder door \u2014 and the one He loves.",
+        "You are allowed to be wronged and still choose not to be ruined by it. That restraint is strength.",
+        "Say less than you want to right now. What is unsaid can still be said tomorrow; the reverse is not true.",
+        "The heat will pass and leave you with whatever you did while it burned. Choose something you can live beside.",
+        "Justice and vengeance want the same thing from you but leave you in very different places.",
+    ],
+    "exhausted": [
+        "You do not have to outrun the weight. Ease is being woven into the same cloth as the difficulty.",
+        "Rest is not the opposite of devotion. A body that is spent is owed something, and He knows it.",
+        "You have been running on the last of yourself for a while. Let today be smaller than you planned.",
+        "Do the next small thing, and only that. The whole of it is not being asked of you at once.",
+        "Tiredness is not weakness. It is the honest cost of having carried something real.",
+    ],
+    "grateful": [
+        "Gratitude is the quietest worship. Speak it gently \u2014 even what you cannot count is counted.",
+        "Notice one thing today that you would have missed a year ago. That noticing is itself the gift.",
+        "What you are thankful for was given before you thought to ask. That is the shape of most mercies.",
+        "Say it out loud to someone. Gratitude kept private tends to fade; spoken, it multiplies.",
+        "The ordinary day you are having is the answer to a prayer you have forgotten making.",
+    ],
+    "hopeless": [
+        "There is no door He cannot open, no return He refuses. Whatever you are carrying, bring it home.",
+        "Despair speaks with great confidence and is very often wrong. Do not sign anything it tells you.",
+        "You do not need to see the whole way out. You only need the next step, and it is usually visible.",
+        "Nothing you have done has placed you outside His reach. That door was never the one that closes.",
+        "Stay a little longer. Things that felt permanent have quietly changed before, and will again.",
+    ],
+    "happy": [
+        "Hold this lightly and thankfully. The favors around you are uncountable; let one of them be noticed.",
+        "Let yourself have this without waiting for it to be taken. Joy is not a debt you will be billed for.",
+        "Share it. Happiness that is passed on tends to come back wearing a different face.",
+        "Remember this feeling carefully. There will be a day you will want to be reminded it was real.",
+        "Good days are not accidents to be rushed past. Sit in this one a moment longer.",
+    ],
+    "restless": [
+        "You were not given more than you can carry. Set down what is not yours to hold tonight.",
+        "The urge to move is not always the need to move. Ask what the restlessness is actually pointing at.",
+        "Stillness feels like falling behind and rarely is. Let yourself be unproductive for one hour.",
+        "You are searching for something you may already have. Look closer before you look further.",
+        "Not every unsettled feeling needs solving today. Some of them just need sleep.",
+    ],
+    "heartbroken": [
+        "Grief is not a sign you were wrong to love. To Him we belong, and to Him is the soft, sure return.",
+        "The size of the ache is the size of what mattered. That is a hard kind of proof, but it is proof.",
+        "You will not always feel this. Believe that on the days you cannot feel anything else.",
+        "Let it hurt properly. Grief handled honestly heals cleaner than grief that is hurried.",
+        "Something in you is still tender enough to break. Do not be in a rush to lose that.",
+    ],
+    "lonely": [
+        "You are not as alone as the silence has made you feel. He is closer than the next breath you will take.",
+        "Being unseen by people is not the same as being unseen. One of those is temporary.",
+        "Reach out first, even clumsily. Most loneliness is two people each waiting for the other.",
+        "Solitude and loneliness wear the same clothes. Sometimes changing which one you call it changes the evening.",
+        "You are known in full by the One who made you \u2014 including the parts you have never said aloud.",
+    ],
+}
+
+_GENERIC_FALLBACKS = [
+    "Sit with the verse. Let it find the part of you that needs it most.",
+    "Read it once more, slowly. The second reading usually lands somewhere the first did not.",
+    "You do not have to draw a lesson from this today. Let it simply keep you company.",
+]
+
+
+def _fallback_reflection(emotion: str, variant: int = 0) -> str:
+    """A hand-written reflection. `variant` (the verse's index in its pool)
+    rotates through the set so pressing Another changes the words too."""
+    pool = _FALLBACKS.get(emotion) or _GENERIC_FALLBACKS
+    return pool[variant % len(pool)]
 
 
 @router.get("/daily-reminder")

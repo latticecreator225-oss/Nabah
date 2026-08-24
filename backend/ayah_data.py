@@ -285,47 +285,113 @@ SURAH_NAS = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِ
 SAYYID_ISTIGHFAR = "اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي، فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ"
 LAST_TWO_BAQARAH = "آمَنَ الرَّسُولُ بِمَا أُنزِلَ إِلَيْهِ مِن رَّبِّهِ وَالْمُؤْمِنُونَ ۚ كُلٌّ آمَنَ بِاللَّهِ وَمَلَائِكَتِهِ وَكُتُبِهِ وَرُسُلِهِ لَا نُفَرِّقُ بَيْنَ أَحَدٍ مِّن رُّسُلِهِ ۚ وَقَالُوا سَمِعْنَا وَأَطَعْنَا ۖ غُفْرَانَكَ رَبَّنَا وَإِلَيْكَ الْمَصِيرُ ۞ لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا ۚ لَهَا مَا كَسَبَتْ وَعَلَيْهَا مَا اكْتَسَبَتْ ۗ رَبَّنَا لَا تُؤَاخِذْنَا إِن نَّسِينَا أَوْ أَخْطَأْنَا ۚ رَبَّنَا وَلَا تَحْمِلْ عَلَيْنَا إِصْرًا كَمَا حَمَلْتَهُ عَلَى الَّذِينَ مِن قَبْلِنَا ۚ رَبَّنَا وَلَا تُحَمِّلْنَا مَا لَا طَاقَةَ لَنَا بِهِ ۖ وَاعْفُ عَنَّا وَاغْفِرْ لَنَا وَارْحَمْنَا ۚ أَنتَ مَوْلَانَا فَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ"
 
+# Transliterations for the reusable Arabic passages above. These are paired with
+# their constant so every section that reuses a passage shows the same complete
+# transliteration — previously each site carried its own truncated stub (or, in
+# several cases, just a title like "Surah Al-Ikhlas" instead of a transliteration).
+AYAT_AL_KURSI_TR = (
+    "Allahu la ilaha illa Huwal-Hayyul-Qayyum. La ta'khudhuhu sinatun wa la nawm. "
+    "Lahu ma fis-samawati wa ma fil-ard. Man dhal-ladhi yashfa'u 'indahu illa bi-idhnih. "
+    "Ya'lamu ma bayna aydihim wa ma khalfahum. Wa la yuhituna bi-shay'in min 'ilmihi illa bima sha'. "
+    "Wasi'a kursiyyuhus-samawati wal-ard. Wa la ya'uduhu hifzuhuma. Wa Huwal-'Aliyyul-'Azim."
+)
+SURAH_IKHLAS_TR = (
+    "Bismillahir-Rahmanir-Rahim. Qul Huwa Allahu Ahad. Allahus-Samad. "
+    "Lam yalid wa lam yulad. Wa lam yakun lahu kufuwan ahad."
+)
+SURAH_FALAQ_TR = (
+    "Bismillahir-Rahmanir-Rahim. Qul a'udhu bi-Rabbil-falaq. Min sharri ma khalaq. "
+    "Wa min sharri ghasiqin idha waqab. Wa min sharrin-naffathati fil-'uqad. "
+    "Wa min sharri hasidin idha hasad."
+)
+SURAH_NAS_TR = (
+    "Bismillahir-Rahmanir-Rahim. Qul a'udhu bi-Rabbin-nas. Malikin-nas. Ilahin-nas. "
+    "Min sharril-waswasil-khannas. Alladhi yuwaswisu fi sudurin-nas. Minal-jinnati wan-nas."
+)
+SAYYID_ISTIGHFAR_TR = (
+    "Allahumma anta Rabbi la ilaha illa anta, khalaqtani wa ana 'abduka, "
+    "wa ana 'ala 'ahdika wa wa'dika mastata't. A'udhu bika min sharri ma sana't. "
+    "Abu'u laka bi-ni'matika 'alayya, wa abu'u bi-dhanbi, "
+    "faghfir li fa-innahu la yaghfirudh-dhunuba illa anta."
+)
+LAST_TWO_BAQARAH_TR = (
+    "Amanar-Rasulu bima unzila ilayhi min Rabbihi wal-mu'minun. "
+    "Kullun amana billahi wa mala'ikatihi wa kutubihi wa rusulih. "
+    "La nufarriqu bayna ahadin min rusulih. Wa qalu sami'na wa ata'na, "
+    "ghufranaka Rabbana wa ilaykal-masir. La yukallifullahu nafsan illa wus'aha. "
+    "Laha ma kasabat wa 'alayha maktasabat. Rabbana la tu'akhidhna in nasina aw akhta'na. "
+    "Rabbana wa la tahmil 'alayna isran kama hamaltahu 'alal-ladhina min qablina. "
+    "Rabbana wa la tuhammilna ma la taqata lana bih. Wa'fu 'anna, waghfir lana, warhamna. "
+    "Anta Mawlana fansurna 'alal-qawmil-kafirin."
+)
+LA_ILAHA_WAHDAHU_TR = (
+    "La ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu, "
+    "wa Huwa 'ala kulli shay'in Qadir."
+)
+HASBIYALLAHU_TR = (
+    "Hasbiyallahu la ilaha illa Huwa, 'alayhi tawakkaltu, wa Huwa Rabbul-'Arshil-'Azim."
+)
+BISMILLAHILLADHI_TR = (
+    "Bismillahil-ladhi la yadurru ma'asmihi shay'un fil-ardi wa la fis-sama'i, "
+    "wa Huwas-Sami'ul-'Alim."
+)
+RADITU_TR = "Raditu billahi Rabban, wa bil-Islami dinan, wa bi-Muhammadin ﷺ nabiyyan."
+
 AZKAR_SECTIONS = [
     {
         "id": "morning",
         "title_en": "Morning Adhkar",
         "title_ar": "أذكار الصباح",
         "items": [
-            {"arabic": AYAT_AL_KURSI, "transliteration": "Allahu la ilaha illa Huwa al-Hayyul-Qayyum…",
+            {"arabic": AYAT_AL_KURSI, "transliteration": AYAT_AL_KURSI_TR,
              "english": "Ayat al-Kursi (2:255). Whoever recites it in the morning is protected from jinn until evening.", "count": 1},
-            {"arabic": SURAH_IKHLAS, "transliteration": "Qul Huwa Allahu Ahad…",
+            {"arabic": SURAH_IKHLAS, "transliteration": SURAH_IKHLAS_TR,
              "english": "Surah Al-Ikhlas (112) — three times.", "count": 3},
-            {"arabic": SURAH_FALAQ, "transliteration": "Qul a'oodhu bi-Rabbil-falaq…",
+            {"arabic": SURAH_FALAQ, "transliteration": SURAH_FALAQ_TR,
              "english": "Surah Al-Falaq (113) — three times.", "count": 3},
-            {"arabic": SURAH_NAS, "transliteration": "Qul a'oodhu bi-Rabbin-nas…",
+            {"arabic": SURAH_NAS, "transliteration": SURAH_NAS_TR,
              "english": "Surah An-Nas (114) — three times.", "count": 3},
             {"arabic": "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَٰذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَٰذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ",
-             "transliteration": "Asbahna wa asbaha al-mulku lillah…",
+             "transliteration": (
+                 "Asbahna wa asbahal-mulku lillah, walhamdu lillah, "
+                 "la ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu "
+                 "wa Huwa 'ala kulli shay'in Qadir. Rabbi as'aluka khayra ma fi hadhal-yawmi "
+                 "wa khayra ma ba'dah, wa a'udhu bika min sharri ma fi hadhal-yawmi wa sharri ma ba'dah."
+             ),
              "english": "We have reached the morning, and all sovereignty belongs to Allah. My Lord, I ask You for the good of this day and what follows it; I seek refuge in You from the evil of this day and what follows it.", "count": 1},
             {"arabic": "اللَّهُمَّ بِكَ أَصْبَحْنَا، وَبِكَ أَمْسَيْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ النُّشُورُ",
-             "transliteration": "Allahumma bika asbahna, wa bika amsayna…",
+             "transliteration": (
+                 "Allahumma bika asbahna, wa bika amsayna, wa bika nahya, "
+                 "wa bika namutu, wa ilaykan-nushur."
+             ),
              "english": "O Allah, by You we enter the morning, by You the evening; by You we live and die, and to You is the resurrection.", "count": 1},
-            {"arabic": SAYYID_ISTIGHFAR, "transliteration": "Allahumma anta Rabbi la ilaha illa anta…",
+            {"arabic": SAYYID_ISTIGHFAR, "transliteration": SAYYID_ISTIGHFAR_TR,
              "english": "Sayyid al-Istighfar. Whoever says it in the morning with certainty and dies that day enters Paradise.", "count": 1},
             {"arabic": "اللَّهُمَّ عَافِنِي فِي بَدَنِي، اللَّهُمَّ عَافِنِي فِي سَمْعِي، اللَّهُمَّ عَافِنِي فِي بَصَرِي، لَا إِلَٰهَ إِلَّا أَنْتَ",
-             "transliteration": "Allahumma 'afini fi badani…",
+             "transliteration": (
+                 "Allahumma 'afini fi badani, Allahumma 'afini fi sam'i, "
+                 "Allahumma 'afini fi basari, la ilaha illa anta."
+             ),
              "english": "O Allah, grant me well-being in my body, hearing, and sight. There is no god but You.", "count": 3},
             {"arabic": "حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
-             "transliteration": "Hasbiyallahu la ilaha illa Huwa…",
+             "transliteration": HASBIYALLAHU_TR,
              "english": "Allah is sufficient for me. None has the right to be worshipped but Him. On Him I rely.", "count": 7},
             {"arabic": "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ",
-             "transliteration": "Bismillahil-ladhi la yadurru ma'asmihi shay'…",
+             "transliteration": BISMILLAHILLADHI_TR,
              "english": "In the name of Allah, with whose name nothing on earth or in the heavens can cause harm.", "count": 3},
             {"arabic": "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا",
-             "transliteration": "Radeetu billahi Rabba…",
+             "transliteration": RADITU_TR,
              "english": "I am pleased with Allah as my Lord, Islam as my religion, and Muhammad ﷺ as my Prophet.", "count": 3},
             {"arabic": "يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ، أَصْلِحْ لِي شَأْنِي كُلَّهُ، وَلَا تَكِلْنِي إِلَىٰ نَفْسِي طَرْفَةَ عَيْنٍ",
-             "transliteration": "Ya Hayyu ya Qayyum…",
+             "transliteration": (
+                 "Ya Hayyu ya Qayyumu bi-rahmatika astaghith, aslih li sha'ni kullahu, "
+                 "wa la takilni ila nafsi tarfata 'ayn."
+             ),
              "english": "O Ever-Living, O Sustainer — by Your mercy I seek aid. Rectify all my affairs and do not leave me to myself for the blink of an eye.", "count": 1},
             {"arabic": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "transliteration": "SubhanAllahi wa bihamdihi",
              "english": "Glory and praise to Allah. (100x — sins forgiven though they be like sea foam.)", "count": 100},
             {"arabic": "لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ",
-             "transliteration": "La ilaha illa Allah wahdahu la sharika lah…",
+             "transliteration": LA_ILAHA_WAHDAHU_TR,
              "english": "There is no god but Allah alone. (10x — protection from Shaytan until evening.)", "count": 10},
             {"arabic": "اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ",
              "transliteration": "Allahumma salli wa sallim wa barik 'ala nabiyyina Muhammad",
@@ -337,33 +403,41 @@ AZKAR_SECTIONS = [
         "title_en": "Evening Adhkar",
         "title_ar": "أذكار المساء",
         "items": [
-            {"arabic": AYAT_AL_KURSI, "transliteration": "Ayat al-Kursi (2:255)",
+            {"arabic": AYAT_AL_KURSI, "transliteration": AYAT_AL_KURSI_TR,
              "english": "Whoever recites it in the evening is protected from jinn until morning.", "count": 1},
-            {"arabic": SURAH_IKHLAS, "transliteration": "Surah Al-Ikhlas",
+            {"arabic": SURAH_IKHLAS, "transliteration": SURAH_IKHLAS_TR,
              "english": "Surah Al-Ikhlas — three times.", "count": 3},
-            {"arabic": SURAH_FALAQ, "transliteration": "Surah Al-Falaq",
+            {"arabic": SURAH_FALAQ, "transliteration": SURAH_FALAQ_TR,
              "english": "Surah Al-Falaq — three times.", "count": 3},
-            {"arabic": SURAH_NAS, "transliteration": "Surah An-Nas",
+            {"arabic": SURAH_NAS, "transliteration": SURAH_NAS_TR,
              "english": "Surah An-Nas — three times.", "count": 3},
             {"arabic": "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَٰذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا",
-             "transliteration": "Amsayna wa amsa al-mulku lillah…",
-             "english": "We have reached the evening… My Lord, I ask You for the good of this night and what follows.", "count": 1},
+             "transliteration": (
+                 "Amsayna wa amsal-mulku lillah, walhamdu lillah, "
+                 "la ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu "
+                 "wa Huwa 'ala kulli shay'in Qadir. Rabbi as'aluka khayra ma fi hadhihil-laylati "
+                 "wa khayra ma ba'daha."
+             ),
+             "english": "We have reached the evening, and all sovereignty belongs to Allah. My Lord, I ask You for the good of this night and the good of what follows it.", "count": 1},
             {"arabic": "اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ",
-             "transliteration": "Allahumma bika amsayna…",
-             "english": "O Allah, by You we enter evening and morning…", "count": 1},
-            {"arabic": SAYYID_ISTIGHFAR, "transliteration": "Sayyid al-Istighfar",
+             "transliteration": (
+                 "Allahumma bika amsayna, wa bika asbahna, wa bika nahya, "
+                 "wa bika namutu, wa ilaykal-masir."
+             ),
+             "english": "O Allah, by You we enter the evening, by You the morning; by You we live and die, and to You is the final return.", "count": 1},
+            {"arabic": SAYYID_ISTIGHFAR, "transliteration": SAYYID_ISTIGHFAR_TR,
              "english": "Whoever says it in the evening with certainty and dies that night enters Paradise.", "count": 1},
             {"arabic": "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
              "transliteration": "A'oodhu bi-kalimatillahit-tammati min sharri ma khalaq",
              "english": "I seek refuge in the perfect words of Allah from the evil of what He has created.", "count": 3},
             {"arabic": "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ",
-             "transliteration": "Bismillahil-ladhi la yadurru…",
+             "transliteration": BISMILLAHILLADHI_TR,
              "english": "In the name of Allah — nothing in the heavens or earth can harm with His name.", "count": 3},
             {"arabic": "حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ، وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
-             "transliteration": "Hasbiyallahu la ilaha illa Huwa…",
+             "transliteration": HASBIYALLAHU_TR,
              "english": "Allah is sufficient for me. On Him I rely.", "count": 7},
             {"arabic": "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا",
-             "transliteration": "Radeetu billahi Rabba…",
+             "transliteration": RADITU_TR,
              "english": "I am pleased with Allah as Lord, Islam as religion, Muhammad ﷺ as Prophet.", "count": 3},
             {"arabic": "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", "transliteration": "SubhanAllahi wa bihamdihi",
              "english": "Glory and praise to Allah. (100x)", "count": 100},
@@ -382,7 +456,10 @@ AZKAR_SECTIONS = [
             {"arabic": "أَسْتَغْفِرُ اللَّهَ", "transliteration": "Astaghfirullah",
              "english": "I seek Allah's forgiveness. (3x immediately after the salam.)", "count": 3},
             {"arabic": "اللَّهُمَّ أَنْتَ السَّلَامُ، وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ",
-             "transliteration": "Allahumma antas-Salam…",
+             "transliteration": (
+                 "Allahumma antas-Salam, wa minkas-salam, "
+                 "tabarakta ya Dhal-Jalali wal-Ikram."
+             ),
              "english": "O Allah, You are Peace, and from You is peace. Blessed are You, Possessor of Majesty and Honor.", "count": 1},
             {"arabic": "سُبْحَانَ اللَّهِ", "transliteration": "SubhanAllah",
              "english": "Glory is to Allah.", "count": 33},
@@ -391,12 +468,12 @@ AZKAR_SECTIONS = [
             {"arabic": "اللَّهُ أَكْبَرُ", "transliteration": "Allahu Akbar",
              "english": "Allah is the Greatest.", "count": 34},
             {"arabic": "لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ",
-             "transliteration": "La ilaha illa Allah wahdahu la sharika lah…",
+             "transliteration": LA_ILAHA_WAHDAHU_TR,
              "english": "There is no god but Allah alone, after completing the tasbeeh.", "count": 1},
-            {"arabic": AYAT_AL_KURSI, "transliteration": "Ayat al-Kursi",
+            {"arabic": AYAT_AL_KURSI, "transliteration": AYAT_AL_KURSI_TR,
              "english": "Whoever recites Ayat al-Kursi after every obligatory prayer — nothing keeps him from Paradise except death.", "count": 1},
             {"arabic": "اللَّهُمَّ أَعِنِّي عَلَىٰ ذِكْرِكَ، وَشُكْرِكَ، وَحُسْنِ عِبَادَتِكَ",
-             "transliteration": "Allahumma a'inni 'ala dhikrika…",
+             "transliteration": "Allahumma a'inni 'ala dhikrika, wa shukrika, wa husni 'ibadatik.",
              "english": "O Allah, help me to remember You, thank You, and worship You in the best manner.", "count": 1},
         ],
     },
@@ -407,21 +484,24 @@ AZKAR_SECTIONS = [
         "items": [
             {"arabic": "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا", "transliteration": "Bismika Allahumma amootu wa ahya",
              "english": "In Your name, O Allah, I die and I live.", "count": 1},
-            {"arabic": AYAT_AL_KURSI, "transliteration": "Ayat al-Kursi (2:255)",
+            {"arabic": AYAT_AL_KURSI, "transliteration": AYAT_AL_KURSI_TR,
              "english": "A guardian from Allah remains with you and no devil comes near until morning.", "count": 1},
-            {"arabic": SURAH_IKHLAS, "transliteration": "Surah Al-Ikhlas",
+            {"arabic": SURAH_IKHLAS, "transliteration": SURAH_IKHLAS_TR,
              "english": "Recite into your palms (then blow into them and wipe over your body).", "count": 3},
-            {"arabic": SURAH_FALAQ, "transliteration": "Surah Al-Falaq",
+            {"arabic": SURAH_FALAQ, "transliteration": SURAH_FALAQ_TR,
              "english": "Recite into your palms.", "count": 3},
-            {"arabic": SURAH_NAS, "transliteration": "Surah An-Nas",
+            {"arabic": SURAH_NAS, "transliteration": SURAH_NAS_TR,
              "english": "Recite into your palms. Blow into them and wipe over the body — three times.", "count": 3},
-            {"arabic": LAST_TWO_BAQARAH, "transliteration": "Amanar-rasoolu… (2:285-286)",
+            {"arabic": LAST_TWO_BAQARAH, "transliteration": LAST_TWO_BAQARAH_TR,
              "english": "Last two verses of Al-Baqarah. Whoever recites them at night, they will suffice him.", "count": 1},
             {"arabic": "اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ",
-             "transliteration": "Allahumma qini 'adhabaka…",
+             "transliteration": "Allahumma qini 'adhabaka yawma tab'athu 'ibadak.",
              "english": "O Allah, save me from Your punishment on the Day You resurrect Your servants. (Place hand under cheek.)", "count": 3},
             {"arabic": "أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيَّ الْقَيُّومَ وَأَتُوبُ إِلَيْهِ",
-             "transliteration": "Astaghfirullah al-'Adheem…",
+             "transliteration": (
+                 "Astaghfirullahal-'Azimal-ladhi la ilaha illa Huwal-Hayyal-Qayyuma "
+                 "wa atubu ilayh."
+             ),
              "english": "I seek the forgiveness of Allah, the Most Great, and turn to Him in repentance.", "count": 3},
         ],
     },
@@ -433,19 +513,32 @@ AZKAR_SECTIONS = [
             {"arabic": "بِسْمِ اللَّهِ", "transliteration": "Bismillah",
              "english": "In the name of Allah. (Before eating, drinking, or beginning anything.)", "count": 1},
             {"arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنِي هَٰذَا، وَرَزَقَنِيهِ، مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ",
-             "transliteration": "Alhamdulillah alladhi at'amani hadha…",
+             "transliteration": (
+                 "Alhamdu lillahil-ladhi at'amani hadha, wa razaqanihi, "
+                 "min ghayri hawlin minni wa la quwwah."
+             ),
              "english": "Praise be to Allah who fed me this and provided it for me. (After eating — past sins forgiven.)", "count": 1},
             {"arabic": "بِسْمِ اللَّهِ، تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
-             "transliteration": "Bismillah, tawakkaltu 'ala Allah…",
+             "transliteration": "Bismillah, tawakkaltu 'alallah, wa la hawla wa la quwwata illa billah.",
              "english": "In the name of Allah, I rely on Allah; there is no might nor power except with Allah. (Leaving home.)", "count": 1},
             {"arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ خَيْرَ الْمَوْلِجِ، وَخَيْرَ الْمَخْرَجِ، بِسْمِ اللَّهِ وَلَجْنَا، وَبِسْمِ اللَّهِ خَرَجْنَا",
-             "transliteration": "Allahumma inni as'aluka khayral-mawliji…",
+             "transliteration": (
+                 "Allahumma inni as'aluka khayral-mawliji wa khayral-makhraj. "
+                 "Bismillahi walajna, wa bismillahi kharajna."
+             ),
              "english": "O Allah, I ask You for the best of entries and exits. In Allah's name we enter, in Allah's name we leave.", "count": 1},
             {"arabic": "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ، وَغَلَبَةِ الرِّجَالِ",
-             "transliteration": "Allahumma inni a'oodhu bika min al-hammi wal-hazan…",
+             "transliteration": (
+                 "Allahumma inni a'udhu bika minal-hammi wal-hazan, "
+                 "wal-'ajzi wal-kasal, wal-bukhli wal-jubn, wa dala'id-dayn, "
+                 "wa ghalabatir-rijal."
+             ),
              "english": "O Allah, I seek refuge in You from anxiety and sorrow, weakness and laziness, miserliness and cowardice, the burden of debt, and being overpowered.", "count": 1},
             {"arabic": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
-             "transliteration": "Rabbana atina fid-dunya hasanah…",
+             "transliteration": (
+                 "Rabbana atina fid-dunya hasanatan wa fil-akhirati hasanatan "
+                 "wa qina 'adhaban-nar."
+             ),
              "english": "Our Lord, grant us good in this world and the Hereafter, and protect us from the Fire. (2:201)", "count": 1},
         ],
     },

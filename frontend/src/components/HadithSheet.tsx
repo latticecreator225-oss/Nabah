@@ -10,12 +10,14 @@ import {
   api, HadithCollection, HadithSection, HadithSectionsResp, HadithItem,
 } from '../api';
 import { logError } from '../log';
+import { useTextScale } from '../textScale';
 import { FadeInUp } from '../motion';
 import { HeartIcon, ShareIcon, SearchIcon } from './Icons';
 
 const FAV_KEY = 'hadithFavorites';
 
 export default function HadithSheetBody() {
+  const ts = useTextScale();
   const [view, setView] = useState<'collections' | 'sections' | 'list'>('collections');
   const [collections, setCollections] = useState<HadithCollection[]>([]);
   const [loadingCols, setLoadingCols] = useState(true);
@@ -300,9 +302,9 @@ export default function HadithSheetBody() {
                   <View style={{ flex: 1 }} />
                   <Text style={styles.hRef}>Book {item.book}:{item.in_book}</Text>
                 </View>
-                {item.arabic ? <Text style={styles.hArabic} selectable>{item.arabic}</Text> : null}
+                {item.arabic ? <Text style={[styles.hArabic, ts(styles.hArabic)]} selectable>{item.arabic}</Text> : null}
                 {item.arabic ? <View style={styles.hairline} /> : null}
-                <Text style={styles.hEnglish} selectable>{item.english}</Text>
+                <Text style={[styles.hEnglish, ts(styles.hEnglish)]} selectable>{item.english}</Text>
                 <View style={styles.hFooter}>
                   <Text style={styles.hAuthority}>{coll?.authority}</Text>
                   <View style={{ flex: 1 }} />

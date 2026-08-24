@@ -18,6 +18,7 @@ import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, AzkarSection } from '../api';
 import ProgressRing from './ProgressRing';
 import { CheckIcon } from './Icons';
+import { useTextScale } from '../textScale';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -339,6 +340,7 @@ function AdhkarItemCard({
   onToggle: () => void;
   testID?: string;
 }) {
+  const ts = useTextScale();
   const scale = useRef(new Animated.Value(1)).current;
   const tap = () => {
     Animated.sequence([
@@ -369,16 +371,16 @@ function AdhkarItemCard({
             {isDone ? <CheckIcon size={14} color={Colors.bgPrimary} /> : null}
           </View>
         </View>
-        <Text style={styles.itemAr} selectable>
+        <Text style={[styles.itemAr, ts(styles.itemAr)]} selectable>
           {item.arabic}
         </Text>
         {showTrans && item.transliteration ? (
-          <Text style={styles.itemTrans} selectable>
+          <Text style={[styles.itemTrans, ts(styles.itemTrans)]} selectable>
             {item.transliteration}
           </Text>
         ) : null}
         <View style={styles.hairline} />
-        <Text style={styles.itemEn} selectable>
+        <Text style={[styles.itemEn, ts(styles.itemEn)]} selectable>
           {item.english}
         </Text>
       </TouchableOpacity>
