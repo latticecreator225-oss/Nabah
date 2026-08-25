@@ -15,6 +15,7 @@ import { Colors, Fonts, Radius, Spacing } from '../theme';
 import ProgressRing from './ProgressRing';
 import { CheckIcon } from './Icons';
 import { Bump } from '../motion';
+import { useTextScale } from '../textScale';
 
 type Dhikr = { id: string; ar: string; en: string; target: number };
 
@@ -28,6 +29,7 @@ const PRESETS: Dhikr[] = [
 type Props = { onClose: () => void };
 
 export default function TasbeehSheetBody({ onClose }: Props) {
+  const ts = useTextScale();
   const [selected, setSelected] = useState<Dhikr>(PRESETS[0]);
   const [count, setCount] = useState(0);
   const [session, setSession] = useState(0);
@@ -224,8 +226,8 @@ export default function TasbeehSheetBody({ onClose }: Props) {
               )}
             </View>
           </View>
-          <Text style={styles.dhikrAr}>{selected.ar}</Text>
-          <Text style={styles.dhikrEn}>{selected.en}</Text>
+          <Text style={[styles.dhikrAr, ts(styles.dhikrAr)]}>{selected.ar}</Text>
+          <Text style={[styles.dhikrEn, ts(styles.dhikrEn)]}>{selected.en}</Text>
         </Pressable>
 
         <View style={styles.footerRow}>

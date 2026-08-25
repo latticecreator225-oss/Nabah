@@ -69,6 +69,62 @@ _INDOPAK: Optional[Dict[Tuple[int, int], str]] = None
 _INDOPAK_LOCK = asyncio.Lock()
 
 
+# alquran.cloud's Uthmani edition prefixes the Basmala onto ayah 1 of every
+# surah except Al-Fatiha (where it *is* ayah 1) and At-Tawbah (which has none).
+# The reader already renders a standalone Basmala header above the ayah list, so
+# left as-is every surah showed it twice. The Indo-Pak source does not do this,
+# which is why switching script silently changed the behaviour.
+#
+# Matching is done on the *consonant skeleton* (diacritics and alef variants
+# removed) rather than a literal string: the Uthmani text uses alef-wasla
+# (U+0671), superscript alef (U+0670) and other marks that differ between
+# editions, and a hardcoded literal silently fails to match any of them.
+_ARABIC_MARKS = dict.fromkeys(
+    [*range(0x064B, 0x0653), 0x0670, 0x0640, *range(0x06D6, 0x06EE), 0xFEFF]
+)
+_ALEF_FORMS = str.maketrans({c: "ا" for c in "ٱآأإ"})
+
+# ب س م   ا ل ل ه   ا ل ر ح م ن   ا ل ر ح ي م
+_BASMALA_SKELETON = (
+    "بسم"
+    "الله"
+    "الرحمن"
+    "الرحيم"
+)
+
+
+def _skeleton(s: str) -> str:
+    """Consonants only: no diacritics, no tatweel, alef variants unified."""
+    return s.translate(_ARABIC_MARKS).translate(_ALEF_FORMS).replace(" ", "")
+
+
+def _strip_leading_basmala(text: str, surah: int, ayah_no: int) -> str:
+    """Remove a duplicated Basmala prefix from ayah 1. Never touches Al-Fatiha
+    (1) — its first ayah genuinely is the Basmala — nor At-Tawbah (9)."""
+    cleaned = text.lstrip("﻿").strip()
+    if ayah_no != 1 or surah in (1, 9):
+        return cleaned
+    # Walk forward until the consonants seen so far cover the Basmala, then cut
+    # the original string (with its diacritics) at that point.
+    seen = 0
+    target = len(_BASMALA_SKELETON)
+    for i, ch in enumerate(cleaned):
+        sk = _skeleton(ch)
+        if sk:
+            if sk != _BASMALA_SKELETON[seen:seen + len(sk)]:
+                return cleaned  # not a Basmala prefix — leave untouched
+            seen += len(sk)
+            if seen == target:
+                # The final consonant carries its own vowel mark (and possibly
+                # Quranic annotation marks) *after* it — consume those too, or
+                # they survive as a stray diacritic at the head of the ayah.
+                j = i + 1
+                while j < len(cleaned) and (ord(cleaned[j]) in _ARABIC_MARKS or cleaned[j] == " "):
+                    j += 1
+                return cleaned[j:].strip()
+    return cleaned
+
+
 def _fetch_indopak() -> Dict[Tuple[int, int], str]:
     """Blocking — runs in a worker thread. Whole-Quran Indo-Pak text by verse."""
     r = requests.get(INDOPAK_URL, timeout=45)
@@ -181,6 +237,7 @@ async def quran_surah(
             arabic_text = a.get("text", "")
             if indopak is not None:
                 arabic_text = indopak.get((number, num_in_surah), arabic_text)
+            arabic_text = _strip_leading_basmala(arabic_text, number, num_in_surah)
             ayahs.append({
                 "number": num_in_surah,
                 "arabic": arabic_text,

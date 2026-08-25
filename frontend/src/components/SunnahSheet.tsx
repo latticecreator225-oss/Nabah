@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { API } from '../api';
 import { logError } from '../log';
+import { useTextScale } from '../textScale';
 import { CheckIcon, ChevronDown, ChevronRight } from './Icons';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -260,6 +261,7 @@ function RarityPill({ rarity }: { rarity: Sunnah['rarity'] }) {
 }
 
 function SunnahCard({ sunnah, onRevive, isHero }: { sunnah: Sunnah; onRevive: () => void; isHero?: boolean }) {
+  const ts = useTextScale();
   const [expanded, setExpanded] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
   const stamp = useRef(new Animated.Value(sunnah.revived_today ? 1 : 0)).current;
@@ -305,14 +307,14 @@ function SunnahCard({ sunnah, onRevive, isHero }: { sunnah: Sunnah; onRevive: ()
           <CheckIcon size={14} color={Colors.bgPrimary} />
         </Animated.View>
       </View>
-      <Text style={styles.sTitle}>{sunnah.title}</Text>
-      <Text style={styles.sTrigger}>Trigger: {sunnah.trigger}</Text>
+      <Text style={[styles.sTitle, ts(styles.sTitle)]}>{sunnah.title}</Text>
+      <Text style={[styles.sTrigger, ts(styles.sTrigger)]}>Trigger: {sunnah.trigger}</Text>
 
       <View style={styles.blockquote}>
         <View style={styles.blockBar} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.bqText}>“{sunnah.hadith_text}”</Text>
-          <Text style={styles.bqSource}>— {sunnah.hadith_source}</Text>
+          <Text style={[styles.bqText, ts(styles.bqText)]}>“{sunnah.hadith_text}”</Text>
+          <Text style={[styles.bqSource, ts(styles.bqSource)]}>— {sunnah.hadith_source}</Text>
         </View>
       </View>
 
@@ -320,7 +322,7 @@ function SunnahCard({ sunnah, onRevive, isHero }: { sunnah: Sunnah; onRevive: ()
         <Text style={styles.expandLabel}>Why it was ordained</Text>
         {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
       </TouchableOpacity>
-      {expanded && <Text style={styles.expandBody}>{sunnah.why_ordained}</Text>}
+      {expanded && <Text style={[styles.expandBody, ts(styles.expandBody)]}>{sunnah.why_ordained}</Text>}
 
       <TouchableOpacity
         onLongPress={onRevive}
@@ -339,6 +341,7 @@ function SunnahCard({ sunnah, onRevive, isHero }: { sunnah: Sunnah; onRevive: ()
 }
 
 function HighlightBanner({ h }: { h: Highlight }) {
+  const ts = useTextScale();
   const opacity = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(8)).current;
   useEffect(() => {
@@ -360,9 +363,9 @@ function HighlightBanner({ h }: { h: Highlight }) {
         <Text style={hlStyles.rank}>{h.rank}</Text>
         <Text style={hlStyles.ar}>{h.ar}</Text>
       </View>
-      <Text style={hlStyles.title}>{h.title}</Text>
+      <Text style={[hlStyles.title, ts(hlStyles.title)]}>{h.title}</Text>
       <Text style={hlStyles.subtitle}>{h.subtitle}</Text>
-      <Text style={hlStyles.body}>{h.body}</Text>
+      <Text style={[hlStyles.body, ts(hlStyles.body)]}>{h.body}</Text>
       <View style={hlStyles.footer}>
         <Text style={hlStyles.source}>— {h.source}</Text>
         <View style={hlStyles.ctaWrap}>

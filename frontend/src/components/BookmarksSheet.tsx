@@ -9,9 +9,11 @@ import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, SavedAyah } from '../api';
 import { confirmDestructive } from '../alerts';
 import { FadeInUp } from '../motion';
+import { useTextScale } from '../textScale';
 import { HeartIcon, ShareIcon } from './Icons';
 
 export default function BookmarksSheetBody() {
+  const ts = useTextScale();
   const [items, setItems] = useState<SavedAyah[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -96,9 +98,9 @@ export default function BookmarksSheetBody() {
                 </Text>
                 <Text style={styles.emotion}>{a.emotion}</Text>
               </View>
-              <Text style={styles.ar}>{a.arabic}</Text>
+              <Text style={[styles.ar, ts(styles.ar)]}>{a.arabic}</Text>
               <View style={styles.divider} />
-              <Text style={styles.en}>“{a.english}”</Text>
+              <Text style={[styles.en, ts(styles.en)]}>“{a.english}”</Text>
               <View style={styles.actions}>
                 <TouchableOpacity onPress={() => share(a)} style={styles.actionBtn} testID={`bookmark-share-${a.id}`}>
                   <ShareIcon size={14} />

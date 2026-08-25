@@ -18,6 +18,7 @@ import { useRouter } from 'expo-router';
 import { Colors, Fonts, Spacing, Radius } from '../src/theme';
 import { api } from '../src/api';
 import { notify } from '../src/alerts';
+import { TEXT_SIZES, TextSizeId, scaleOf, useTextScaleSetting } from '../src/textScale';
 
 type Gender = 'male' | 'female' | 'unspecified';
 
@@ -31,6 +32,7 @@ export default function Onboarding() {
   // tap could call onBegin twice and create two accounts before the button
   // disables. The ref flips synchronously and blocks the second call.
   const submittingRef = useRef(false);
+  const { sizeId, setSizeId } = useTextScaleSetting();
 
   const onBegin = async () => {
     if (submittingRef.current) return;
@@ -81,6 +83,11 @@ export default function Onboarding() {
       setSubmitting(false);
       submittingRef.current = false;
     }
+  };
+
+  const pickTextSize = (id: TextSizeId) => {
+    if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+    setSizeId(id);
   };
 
   const pickGender = (g: Gender) => {
@@ -154,6 +161,46 @@ export default function Onboarding() {
 
           <View style={{ height: Spacing.lg }} />
 
+          {/* Reading text size — offered here because the app is text-heavy
+              (Quran, adhkar, duas) and this is the cheapest moment to get it
+              right, rather than after the reader has already struggled. */}
+          <Text style={styles.label}>READING TEXT SIZE</Text>
+          <View style={styles.sizeRow}>
+            {TEXT_SIZES.map((t) => {
+              const active = sizeId === t.id;
+              return (
+                <TouchableOpacity
+                  key={t.id}
+                  testID={`onboarding-textsize-${t.id}`}
+                  onPress={() => pickTextSize(t.id)}
+                  style={[styles.sizePill, active && styles.sizePillActive]}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.sizePillText,
+                      { fontSize: Math.round(13 * t.scale) },
+                      active && { color: Colors.gold },
+                    ]}
+                  >
+                    {t.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text
+            style={[
+              styles.sizePreview,
+              { fontSize: Math.round(15 * scaleOf(sizeId)), lineHeight: Math.round(26 * scaleOf(sizeId)) },
+            ]}
+          >
+            Indeed, with hardship comes ease.
+          </Text>
+          <Text style={styles.sizeHint}>You can change this anytime in Settings.</Text>
+
+          <View style={{ height: Spacing.lg }} />
+
           <Text style={styles.disclaimer}>
             We ask these only to gently tailor your reflections and reminders. Your details are
             stored securely for your account and never sold or shared — you can change them, or
@@ -195,6 +242,22 @@ const styles = StyleSheet.create({
   welcome: { textAlign: 'center', fontFamily: Fonts.displayItalic, fontSize: 22, color: Colors.textPrimary },
   welcomeAr: { fontFamily: Fonts.arabic, color: Colors.gold, fontSize: 26 },
   label: { fontFamily: Fonts.label, fontSize: 11, letterSpacing: 2.2, color: Colors.textDim, marginBottom: Spacing.sm },
+  sizeRow: { flexDirection: 'row', gap: Spacing.sm },
+  sizePill: {
+    flex: 1, paddingVertical: 12, paddingHorizontal: 4, borderRadius: Radius.lg,
+    borderWidth: 1, borderColor: Colors.borderSubtle, backgroundColor: Colors.card,
+    alignItems: 'center', justifyContent: 'center', minHeight: 50,
+  },
+  sizePillActive: { borderColor: Colors.gold, backgroundColor: Colors.hover },
+  sizePillText: { fontFamily: Fonts.bodyMedium, color: Colors.textSecondary, textAlign: 'center' },
+  sizePreview: {
+    fontFamily: Fonts.displayItalic, color: Colors.textSecondary,
+    marginTop: Spacing.md, textAlign: 'center',
+  },
+  sizeHint: {
+    fontFamily: Fonts.body, fontSize: 11, color: Colors.textDim,
+    marginTop: 6, textAlign: 'center',
+  },
   input: {
     backgroundColor: Colors.card,
     borderBottomWidth: 1,
