@@ -165,6 +165,8 @@ export const bn: Strings = {
   settingsLanguageSub:
     'অ্যাপের ইন্টারফেস বদলায়, এবং যেখানে নির্ভরযোগ্য অনুবাদ আছে সেখানে কুরআন ও হাদিসের অনুবাদও।',
   settingsRestartNote: 'ডান-থেকে-বাম ভাষায় পরিবর্তন করলে অ্যাপ পুনরায় চালু হবে।',
+  contentEnglishOnlyNotice:
+    "নির্ভরযোগ্য অনুবাদ খোঁজার সময় পর্যন্ত এই অংশটি ইংরেজিতেই থাকবে — প্রস্তুত হওয়া মাত্র আপডেট করা হবে।",
   settingsSaveChanges: 'পরিবর্তন সংরক্ষণ',
   settingsSignOut: 'সাইন আউট',
   settingsDeleteAccount: 'অ্যাকাউন্ট ও ডেটা মুছুন',

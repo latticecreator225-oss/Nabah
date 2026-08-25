@@ -165,6 +165,8 @@ export const ur: Strings = {
   settingsLanguageSub:
     'ایپ کا انٹرفیس بدلتا ہے، اور جہاں مستند ترجمہ دستیاب ہو وہاں قرآن و حدیث کا ترجمہ بھی۔',
   settingsRestartNote: 'دائیں سے بائیں زبان میں تبدیلی پر ایپ دوبارہ شروع ہوگی۔',
+  contentEnglishOnlyNotice:
+    "جب تک ہمیں مستند تراجم دستیاب نہیں ہوتے، یہ حصہ انگریزی میں ہی رہے گا — دستیاب ہوتے ہی اپ ڈیٹ کر دیں گے۔",
   settingsSaveChanges: 'تبدیلیاں محفوظ کریں',
   settingsSignOut: 'سائن آؤٹ',
   settingsDeleteAccount: 'اکاؤنٹ اور ڈیٹا حذف کریں',

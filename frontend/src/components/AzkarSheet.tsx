@@ -19,6 +19,8 @@ import { api, AzkarSection } from '../api';
 import ProgressRing from './ProgressRing';
 import { CheckIcon } from './Icons';
 import { useTextScale } from '../textScale';
+import { useT } from '../i18n';
+import EnglishOnlyNotice from './EnglishOnlyNotice';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -62,6 +64,7 @@ const ESSENTIALS: Essential[] = [
 ];
 
 export default function AdhkarSheetBody({ visible }: { visible?: boolean }) {
+  const t = useT();
   const [sections, setSections] = useState<AzkarSection[]>([]);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [activeId, setActiveId] = useState<string | null>(null); // null = picker view
@@ -216,9 +219,11 @@ export default function AdhkarSheetBody({ visible }: { visible?: boolean }) {
         testID="adhkar-transliteration-toggle"
       >
         <Text style={styles.transToggleText}>
-          {showTrans ? '— Hide transliteration' : '+ Show transliteration'}
+          {showTrans ? t.adhkarHideTranslit : t.adhkarShowTranslit}
         </Text>
       </TouchableOpacity>
+
+      <EnglishOnlyNotice />
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: Spacing.xxl }}

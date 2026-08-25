@@ -10,6 +10,7 @@ import { API } from '../api';
 import { logError } from '../log';
 import { useTextScale } from '../textScale';
 import { CheckIcon, ChevronDown, ChevronRight } from './Icons';
+import EnglishOnlyNotice from './EnglishOnlyNotice';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -174,6 +175,7 @@ export default function SunnahSheetBody({ initialDemographic }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} showsVerticalScrollIndicator={false}>
+        <EnglishOnlyNotice />
         {view === 'dashboard' && (
           <>
             {highlight && <HighlightBanner h={highlight} />}

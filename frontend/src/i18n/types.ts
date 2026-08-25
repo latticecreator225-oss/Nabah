@@ -221,6 +221,7 @@ export type Strings = {
   settingsLanguage: string;
   settingsLanguageSub: string;
   settingsRestartNote: string;
+  contentEnglishOnlyNotice: string;
   settingsSaveChanges: string;
   settingsSignOut: string;
   settingsDeleteAccount: string;

@@ -165,6 +165,8 @@ export const ar: Strings = {
   settingsLanguageSub:
     'يغيّر واجهة التطبيق، وترجمة القرآن والحديث حيثما توفّرت ترجمة معتمدة.',
   settingsRestartNote: 'التبديل من أو إلى لغة تُكتب من اليمين لليسار يعيد تشغيل التطبيق.',
+  contentEnglishOnlyNotice:
+    "لا يزال هذا القسم بالإنجليزية ريثما نحصل على ترجمات موثوقة — سنحدّثه فور توفّرها.",
   settingsSaveChanges: 'حفظ التغييرات',
   settingsSignOut: 'تسجيل الخروج',
   settingsDeleteAccount: 'حذف الحساب والبيانات',

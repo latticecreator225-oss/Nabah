@@ -11,6 +11,7 @@ import { logError } from '../log';
 import { useTextScale } from '../textScale';
 import { useT } from '../i18n';
 import { FadeInUp } from '../motion';
+import EnglishOnlyNotice from './EnglishOnlyNotice';
 import { HeartIcon, ShareIcon } from './Icons';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -129,6 +130,7 @@ export default function DuasSheetBody() {
           <View style={styles.loading}><ActivityIndicator color={Colors.gold} /></View>
         ) : (
           <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} showsVerticalScrollIndicator={false}>
+            <EnglishOnlyNotice />
             {active.blurb ? <Text style={styles.catBlurb}>{active.blurb}</Text> : null}
             {active.duas.map((d, idx) => (
               <View key={d.id} style={styles.duaCard} testID={`dua-${d.id}`}>

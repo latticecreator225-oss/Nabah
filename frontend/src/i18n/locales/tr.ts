@@ -165,6 +165,8 @@ export const tr: Strings = {
   settingsLanguageSub:
     'Uygulama arayüzünü, ayrıca sahih bir tercüme mevcutsa Kur’ân ve Hadis meâllerini değiştirir.',
   settingsRestartNote: 'Sağdan sola bir dile geçmek uygulamayı yeniden başlatır.',
+  contentEnglishOnlyNotice:
+    "Doğrulanmış çeviriler bulana kadar bu bölüm İngilizce olarak kalacak — hazır olur olmaz güncelleyeceğiz.",
   settingsSaveChanges: 'Değişiklikleri kaydet',
   settingsSignOut: 'Çıkış yap',
   settingsDeleteAccount: 'Hesabı ve verileri sil',

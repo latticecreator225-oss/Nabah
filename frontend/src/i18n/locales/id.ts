@@ -165,6 +165,8 @@ export const id: Strings = {
   settingsLanguageSub:
     'Mengubah antarmuka aplikasi, serta terjemahan Al-Quran dan Hadis bila terjemahan sahih tersedia.',
   settingsRestartNote: 'Beralih ke atau dari bahasa kanan-ke-kiri akan memulai ulang aplikasi.',
+  contentEnglishOnlyNotice:
+    "Bagian ini masih dalam bahasa Inggris selagi kami mencari terjemahan yang terverifikasi — akan kami perbarui segera setelah tersedia.",
   settingsSaveChanges: 'Simpan perubahan',
   settingsSignOut: 'Keluar',
   settingsDeleteAccount: 'Hapus akun & data',

@@ -165,6 +165,8 @@ export const en: Strings = {
   settingsLanguageSub:
     'Changes the app interface, and the Quran and Hadith translations where an authentic translation exists.',
   settingsRestartNote: 'Switching to or from a right-to-left language restarts the app.',
+  contentEnglishOnlyNotice:
+    "This section is still in English while we source verified translations — we'll update it as soon as they're ready.",
   settingsSaveChanges: 'Save changes',
   settingsSignOut: 'Sign out',
   settingsDeleteAccount: 'Delete account & data',
