@@ -8,6 +8,7 @@ import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, G, Line, Path, Text as SvgText } from 'react-native-svg';
 import { Colors, Fonts, Spacing, Radius } from '../theme';
+import { useT } from '../i18n';
 
 // Kaaba coordinates
 const KAABA_LAT = 21.4225;
@@ -25,6 +26,7 @@ function bearingTo(lat: number, lng: number): number {
 }
 
 export default function QiblaSheetBody() {
+  const t = useT();
   const [qiblaBearing, setQiblaBearing] = useState<number | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [city, setCity] = useState<{ lat: number; lng: number } | null>(null);
@@ -104,12 +106,12 @@ export default function QiblaSheetBody() {
   return (
     <View style={styles.root} testID="qibla-sheet">
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>QIBLA · القبلة</Text>
-        <Text style={styles.title}>Point toward the House</Text>
+        <Text style={styles.eyebrow}>{t.qiblaEyebrow} · القبلة</Text>
+        <Text style={styles.title}>{t.qiblaTitle}</Text>
         <Text style={styles.sub}>
           {city
             ? `${qiblaBearing != null ? Math.round(qiblaBearing) : '—'}° from true north`
-            : 'Waiting for your location…'}
+            : t.qiblaWaiting}
         </Text>
       </View>
 

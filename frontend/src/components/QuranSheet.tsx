@@ -9,6 +9,7 @@ import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, SurahMeta, SurahDetail, Ayah, Reciter } from '../api';
 import { logError } from '../log';
 import { useTextScale } from '../textScale';
+import { useI18n } from '../i18n';
 import { playAudio, stopAudio } from '../audio';
 import {
   PlayIcon, PauseIcon, BookmarkIcon, ShareIcon, SearchIcon, CheckIcon,
@@ -29,6 +30,10 @@ function toArabicNum(n: number): string {
 
 export default function QuranSheetBody({ active = true }: { active?: boolean }) {
   const ts = useTextScale();
+  const { t, language } = useI18n();
+  // Real published translation for the chosen language (see i18n/types.ts).
+  const translationRef = useRef(language.quranEdition);
+  translationRef.current = language.quranEdition;
   const [view, setView] = useState<'index' | 'reader'>('index');
   const [surahs, setSurahs] = useState<SurahMeta[]>([]);
   const [query, setQuery] = useState('');
@@ -109,7 +114,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
     setSurahError(false);
     setLoadingSurah(true);
     try {
-      const d = await api.quranSurah(n, 'en.sahih', scriptRef.current, reciterRef.current);
+      const d = await api.quranSurah(n, translationRef.current, scriptRef.current, reciterRef.current);
       setDetail(d);
       persistLastRead(n, d.englishName, resumeAyah ?? 1);
       if (resumeAyah && resumeAyah > 1) {
@@ -147,7 +152,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       setPlayingAyah(null);
       setLoadingSurah(true);
       try {
-        const nd = await api.quranSurah(d.number, 'en.sahih', s, reciterRef.current);
+        const nd = await api.quranSurah(d.number, translationRef.current, s, reciterRef.current);
         setDetail(nd);
       } catch (e) {
         logError('quran.changeScript', e);
@@ -171,7 +176,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       setPlayingAyah(null);
       setLoadingSurah(true);
       try {
-        const nd = await api.quranSurah(d.number, 'en.sahih', scriptRef.current, id);
+        const nd = await api.quranSurah(d.number, translationRef.current, scriptRef.current, id);
         setDetail(nd);
       } catch (e) {
         logError('quran.changeReciter', e);
@@ -271,7 +276,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       <View style={styles.root} testID="quran-sheet">
         <View style={styles.indexHeader}>
           <Text style={styles.eyebrow}>القرآن الكريم  ·  THE NOBLE QURAN</Text>
-          <Text style={styles.indexTitle}>Read</Text>
+          <Text style={styles.indexTitle}>{t.quranRead}</Text>
         </View>
 
         {loadingList ? (
@@ -298,7 +303,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
                     testID="quran-continue"
                   >
                     <View style={styles.continueGlow} />
-                    <Text style={styles.continueLabel}>CONTINUE READING</Text>
+                    <Text style={styles.continueLabel}>{t.quranContinueReading}</Text>
                     <Text style={styles.continueName}>{lastRead.surahName}</Text>
                     <Text style={styles.continueSub}>Ayah {lastRead.ayah}  ·  resume ›</Text>
                   </Pressable>
@@ -308,7 +313,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
                   <TextInput
                     value={query}
                     onChangeText={setQuery}
-                    placeholder="Search surah…"
+                    placeholder={t.quranSearch}
                     placeholderTextColor={Colors.textDim}
                     style={styles.searchInput}
                     testID="quran-search"
@@ -369,28 +374,28 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       </View>
 
       <View style={styles.scriptStrip}>
-        <Text style={styles.scriptLabel}>SCRIPT</Text>
+        <Text style={styles.scriptLabel}>{t.quranScript}</Text>
         <View style={styles.segmented}>
           <TouchableOpacity
             onPress={() => changeScript('uthmani')}
             style={[styles.segBtn, script === 'uthmani' && styles.segBtnActive]}
             testID="quran-script-uthmani"
           >
-            <Text style={[styles.segText, script === 'uthmani' && styles.segTextActive]}>Madīnah Mushaf</Text>
+            <Text style={[styles.segText, script === 'uthmani' && styles.segTextActive]}>{t.quranScriptUthmani}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => changeScript('indopak')}
             style={[styles.segBtn, script === 'indopak' && styles.segBtnActive]}
             testID="quran-script-indopak"
           >
-            <Text style={[styles.segText, script === 'indopak' && styles.segTextActive]}>Indo-Pak</Text>
+            <Text style={[styles.segText, script === 'indopak' && styles.segTextActive]}>{t.quranScriptIndopak}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {reciters.length > 0 && (
         <View style={styles.reciterStrip}>
-          <Text style={styles.scriptLabel}>RECITER</Text>
+          <Text style={styles.scriptLabel}>{t.quranReciter}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -420,9 +425,9 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
       ) : surahError || !detail ? (
         <View style={styles.loading}>
           <Text style={styles.errorAr}>تعذّر</Text>
-          <Text style={styles.errorTxt}>Could not load this surah.</Text>
+          <Text style={styles.errorTxt}>{t.quranCouldNotLoadSurah}</Text>
           <TouchableOpacity onPress={() => detail && openSurah(detail.number)} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>{t.tryAgain}</Text>
           </TouchableOpacity>
         </View>
       ) : (

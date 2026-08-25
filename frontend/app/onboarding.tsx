@@ -19,6 +19,7 @@ import { Colors, Fonts, Spacing, Radius } from '../src/theme';
 import { api } from '../src/api';
 import { notify } from '../src/alerts';
 import { TEXT_SIZES, TextSizeId, scaleOf, useTextScaleSetting } from '../src/textScale';
+import { useT } from '../src/i18n';
 
 type Gender = 'male' | 'female' | 'unspecified';
 
@@ -33,15 +34,16 @@ export default function Onboarding() {
   // disables. The ref flips synchronously and blocks the second call.
   const submittingRef = useRef(false);
   const { sizeId, setSizeId } = useTextScaleSetting();
+  const t = useT();
 
   const onBegin = async () => {
     if (submittingRef.current) return;
     if (!name.trim()) {
-      notify('Your name', 'Please tell us what to call you.');
+      notify(t.onboardNameMissingTitle, t.onboardNameMissingBody);
       return;
     }
     if (gender === 'unspecified') {
-      notify('A small detail', 'Please choose how we should address you.');
+      notify(t.onboardGenderMissingTitle, t.onboardGenderMissingBody);
       return;
     }
     submittingRef.current = true;
@@ -110,18 +112,18 @@ export default function Onboarding() {
             <View style={styles.dividerLine} />
           </View>
           <Text style={styles.welcome} testID="onboarding-welcome">
-            Welcome to <Text style={styles.welcomeAr}>نَبَأ</Text>
+            {t.onboardWelcome} <Text style={styles.welcomeAr}>نَبَأ</Text>
           </Text>
 
           <View style={{ height: Spacing.xl }} />
 
           {/* Name */}
-          <Text style={styles.label}>YOUR NAME</Text>
+          <Text style={styles.label}>{t.onboardYourName}</Text>
           <TextInput
             testID="onboarding-name-input"
             value={name}
             onChangeText={setName}
-            placeholder="What should we call you?"
+            placeholder={t.onboardNamePlaceholder}
             placeholderTextColor={Colors.textDim}
             style={[styles.input, focusedField === 'name' && { borderBottomColor: Colors.gold }]}
             onFocus={() => setFocusedField('name')}
@@ -133,7 +135,7 @@ export default function Onboarding() {
           <View style={{ height: Spacing.lg }} />
 
           {/* Gender */}
-          <Text style={styles.label}>HOW SHOULD WE ADDRESS YOU</Text>
+          <Text style={styles.label}>{t.onboardAddressYou}</Text>
           <View style={styles.genderRow}>
             <TouchableOpacity
               testID="onboarding-gender-male"
@@ -142,7 +144,7 @@ export default function Onboarding() {
               activeOpacity={0.85}
             >
               <Text style={[styles.genderText, gender === 'male' && { color: Colors.gold }]}>
-                Brother
+                {t.onboardBrother}
               </Text>
               <Text style={styles.genderSub}>أَخ</Text>
             </TouchableOpacity>
@@ -153,7 +155,7 @@ export default function Onboarding() {
               activeOpacity={0.85}
             >
               <Text style={[styles.genderText, gender === 'female' && { color: Colors.gold }]}>
-                Sister
+                {t.onboardSister}
               </Text>
               <Text style={styles.genderSub}>أُخْت</Text>
             </TouchableOpacity>
@@ -164,26 +166,27 @@ export default function Onboarding() {
           {/* Reading text size — offered here because the app is text-heavy
               (Quran, adhkar, duas) and this is the cheapest moment to get it
               right, rather than after the reader has already struggled. */}
-          <Text style={styles.label}>READING TEXT SIZE</Text>
+          <Text style={styles.label}>{t.onboardTextSize}</Text>
           <View style={styles.sizeRow}>
-            {TEXT_SIZES.map((t) => {
-              const active = sizeId === t.id;
+            {TEXT_SIZES.map((sz) => {
+              const active = sizeId === sz.id;
+              const label = sz.id === 'large' ? t.sizeLarge : sz.id === 'xlarge' ? t.sizeXLarge : t.sizeRegular;
               return (
                 <TouchableOpacity
-                  key={t.id}
-                  testID={`onboarding-textsize-${t.id}`}
-                  onPress={() => pickTextSize(t.id)}
+                  key={sz.id}
+                  testID={`onboarding-textsize-${sz.id}`}
+                  onPress={() => pickTextSize(sz.id)}
                   style={[styles.sizePill, active && styles.sizePillActive]}
                   activeOpacity={0.85}
                 >
                   <Text
                     style={[
                       styles.sizePillText,
-                      { fontSize: Math.round(13 * t.scale) },
+                      { fontSize: Math.round(13 * sz.scale) },
                       active && { color: Colors.gold },
                     ]}
                   >
-                    {t.label}
+                    {label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -197,14 +200,12 @@ export default function Onboarding() {
           >
             Indeed, with hardship comes ease.
           </Text>
-          <Text style={styles.sizeHint}>You can change this anytime in Settings.</Text>
+          <Text style={styles.sizeHint}>{t.onboardTextSizeHint}</Text>
 
           <View style={{ height: Spacing.lg }} />
 
           <Text style={styles.disclaimer}>
-            We ask these only to gently tailor your reflections and reminders. Your details are
-            stored securely for your account and never sold or shared — you can change them, or
-            permanently delete everything, anytime in Settings.
+            {t.onboardDisclaimer}
           </Text>
 
           <View style={{ height: Spacing.xl }} />
@@ -219,12 +220,12 @@ export default function Onboarding() {
             {submitting ? (
               <ActivityIndicator color={Colors.bgPrimary} />
             ) : (
-              <Text style={styles.ctaText}>Begin  ›</Text>
+              <Text style={styles.ctaText}>{t.onboardBegin}  ›</Text>
             )}
           </TouchableOpacity>
 
           <Text style={styles.locationNote}>
-            Your location is used only to calculate accurate prayer times for you.
+            {t.onboardLocationNote}
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>

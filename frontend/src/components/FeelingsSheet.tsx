@@ -18,6 +18,7 @@ import { logError } from '../log';
 import { notify } from '../alerts';
 import { FadeInUp } from '../motion';
 import { useTextScale } from '../textScale';
+import { useT } from '../i18n';
 import { HeartIcon, ShareIcon, SparkleIcon, VolumeIcon } from './Icons';
 
 type Props = { onClose: () => void };
@@ -33,6 +34,7 @@ function parseSurahAyah(ref: string): { surah: number; ayah: number } | null {
 }
 
 export default function FeelingsSheetBody({ onClose }: Props) {
+  const t = useT();
   const ts = useTextScale();
   const [emotions, setEmotions] = useState<Emotion[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -167,7 +169,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>How are you feeling?</Text>
+          <Text style={styles.title}>{t.feelingsTitle}</Text>
           <Text style={styles.titleAr}>كيف حالك؟</Text>
         </View>
 
@@ -195,7 +197,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
         {loading && (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={Colors.gold} />
-            <Text style={styles.loadingText}>Finding your ayah…</Text>
+            <Text style={styles.loadingText}>{t.feelingsFinding}</Text>
           </View>
         )}
 
@@ -204,7 +206,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
           <View style={styles.ayahCard} testID="ayah-card">
             <View style={styles.ayahHeadRow}>
               <Text style={styles.surahLabel}>
-                SURAH {ayah.surah.toUpperCase()}  ·  {ayah.reference}
+                {t.feelingsSurah} {ayah.surah.toUpperCase()}  ·  {ayah.reference}
               </Text>
               {ayah.pool_size ? (
                 <TouchableOpacity
@@ -214,7 +216,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
                   style={styles.refreshBtn}
                 >
                   <Text style={styles.refreshText}>
-                    {refreshing ? '…' : `↻ Another (${ayah.pool_size})`}
+                    {refreshing ? '…' : `↻ ${t.another} (${ayah.pool_size})`}
                   </Text>
                 </TouchableOpacity>
               ) : null}
@@ -227,7 +229,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
               <View style={styles.reflectionBox}>
                 <View style={styles.reflectionHeader}>
                   <SparkleIcon size={12} />
-                  <Text style={styles.reflectionLabel}>A WORD FOR YOU</Text>
+                  <Text style={styles.reflectionLabel}>{t.feelingsWordForYou}</Text>
                 </View>
                 <Text style={[styles.reflectionText, ts(styles.reflectionText)]}>{ayah.reflection}</Text>
               </View>
@@ -242,7 +244,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
               >
                 <HeartIcon size={16} color={saved ? Colors.bgPrimary : Colors.gold} />
                 <Text style={[styles.actionText, saved && { color: Colors.bgPrimary }]}>
-                  {saved ? 'Saved' : 'Save'}
+                  {saved ? t.saved : t.save}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -253,7 +255,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
               >
                 <VolumeIcon size={16} color={ambientOn ? Colors.bgPrimary : Colors.gold} />
                 <Text style={[styles.actionText, ambientOn && { color: Colors.bgPrimary }]}>
-                  {ambientLoading ? '…' : ambientOn ? 'Playing' : 'Listen'}
+                  {ambientLoading ? '…' : ambientOn ? t.playing : t.listen}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -262,7 +264,7 @@ export default function FeelingsSheetBody({ onClose }: Props) {
                 style={styles.actionBtn}
               >
                 <ShareIcon size={16} />
-                <Text style={styles.actionText}>Share</Text>
+                <Text style={styles.actionText}>{t.share}</Text>
               </TouchableOpacity>
             </View>
           </View>

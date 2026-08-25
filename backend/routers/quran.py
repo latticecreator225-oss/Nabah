@@ -21,10 +21,23 @@ ALQURAN = "https://api.alquran.cloud/v1"
 
 # Translations the client may request. Transliteration is fixed.
 TRANSLATIONS = {
+    # English
     "en.sahih": "Saheeh International",
     "en.asad": "Muhammad Asad",
     "en.pickthall": "Pickthall",
     "en.yusufali": "Yusuf Ali",
+    # Other languages — real published translations, selected by the app's
+    # interface language (see frontend src/i18n/types.ts `quranEdition`).
+    "ur.jalandhry": "Fateh Muhammad Jalandhry",
+    "id.indonesian": "Indonesian Ministry of Religious Affairs",
+    "bn.bengali": "Muhiuddin Khan",
+    "tr.diyanet": "Diyanet İşleri",
+    "fr.hamidullah": "Muhammad Hamidullah",
+    "ms.basmeih": "Abdullah Muhammad Basmeih",
+    "ru.kuliev": "Elmir Kuliev",
+    "hi.hindi": "Suhel Farooq Khan & Saifur Rahman Nadwi",
+    "fa.fooladvand": "Mohammad Mahdi Fooladvand",
+    "es.cortes": "Julio Cortés",
 }
 DEFAULT_TRANSLATION = "en.sahih"
 

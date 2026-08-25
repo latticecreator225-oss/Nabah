@@ -359,14 +359,21 @@ export const api = {
 
   // ── Hadith — the two Sahihs ──
   hadithCollections: () => request<HadithCollection[]>('/hadith/collections'),
-  hadithSections: (coll: string) =>
-    cachedGet<HadithSectionsResp>(`/hadith/${coll}/sections`, `cache:hadith:${coll}:sections`),
-  hadithList: (coll: string, opts: { section?: number; page?: number; limit?: number; q?: number } = {}) => {
+  hadithSections: (coll: string, lang = 'eng') =>
+    cachedGet<HadithSectionsResp>(
+      `/hadith/${coll}/sections?lang=${lang}`,
+      `cache:hadith:${coll}:sections:${lang}`,
+    ),
+  hadithList: (
+    coll: string,
+    opts: { section?: number; page?: number; limit?: number; q?: number; lang?: string } = {},
+  ) => {
     const p = new URLSearchParams();
     if (opts.section != null) p.set('section', String(opts.section));
     if (opts.page != null) p.set('page', String(opts.page));
     if (opts.limit != null) p.set('limit', String(opts.limit));
     if (opts.q != null) p.set('q', String(opts.q));
+    if (opts.lang) p.set('lang', opts.lang);
     return request<HadithListResp>(`/hadith/${coll}?${p.toString()}`);
   },
 };

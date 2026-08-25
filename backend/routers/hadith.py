@@ -38,9 +38,15 @@ COLLECTIONS: Dict[str, dict] = {
     },
 }
 
-# _CACHE[coll] = {"hadiths": [...], "sections": [...], "total": int}
-_CACHE: Dict[str, dict] = {}
-_LOCKS: Dict[str, asyncio.Lock] = {}
+# Translation editions this dataset actually publishes for BOTH Sahihs. Anything
+# not listed here falls back to English rather than 404ing mid-read. Arabic is
+# always shown alongside, so "ara" needs no separate translation edition.
+HADITH_LANGS = {"eng", "urd", "ind", "ben", "tur", "fra", "rus", "tam"}
+DEFAULT_HADITH_LANG = "eng"
+
+# _CACHE[(coll, lang)] = {"hadiths": [...], "sections": [...], "total": int}
+_CACHE: Dict[tuple, dict] = {}
+_LOCKS: Dict[tuple, asyncio.Lock] = {}
 
 
 def _fetch_json(url: str):
@@ -49,9 +55,21 @@ def _fetch_json(url: str):
     return r.json()
 
 
-def _build_collection(coll: str) -> dict:
-    """Blocking — runs in a worker thread. Fetch eng+ara, merge, index by book."""
-    eng = _fetch_json(f"{CDN}/eng-{coll}.min.json")
+def _build_collection(coll: str, lang: str = DEFAULT_HADITH_LANG) -> dict:
+    """Blocking — runs in a worker thread. Fetch translation+ara, merge, index.
+
+    `lang` selects a real published translation edition (see HADITH_LANGS);
+    the Arabic is always the same source text alongside it.
+    """
+    if lang not in HADITH_LANGS:
+        lang = DEFAULT_HADITH_LANG
+    try:
+        eng = _fetch_json(f"{CDN}/{lang}-{coll}.min.json")
+    except Exception as e:
+        # A language the dataset lists but does not actually serve for this
+        # collection: fall back rather than failing the whole read.
+        logger.warning(f"hadith {lang}-{coll} unavailable ({e}); falling back to English")
+        eng = _fetch_json(f"{CDN}/{DEFAULT_HADITH_LANG}-{coll}.min.json")
     ara = _fetch_json(f"{CDN}/ara-{coll}.min.json")
     ara_by_num = {h.get("hadithnumber"): h.get("text", "") for h in ara.get("hadiths", [])}
     section_names: Dict[str, str] = eng.get("metadata", {}).get("sections", {}) or {}
@@ -94,19 +112,22 @@ def _build_collection(coll: str) -> dict:
     return {"hadiths": hadiths, "sections": sections, "total": len(hadiths)}
 
 
-async def _get_collection(coll: str) -> dict:
-    if coll in _CACHE:
-        return _CACHE[coll]
-    lock = _LOCKS.setdefault(coll, asyncio.Lock())
+async def _get_collection(coll: str, lang: str = DEFAULT_HADITH_LANG) -> dict:
+    if lang not in HADITH_LANGS:
+        lang = DEFAULT_HADITH_LANG
+    key = (coll, lang)
+    if key in _CACHE:
+        return _CACHE[key]
+    lock = _LOCKS.setdefault(key, asyncio.Lock())
     async with lock:
-        if coll in _CACHE:  # built while we waited
-            return _CACHE[coll]
+        if key in _CACHE:  # built while we waited
+            return _CACHE[key]
         try:
-            data = await asyncio.to_thread(_build_collection, coll)
+            data = await asyncio.to_thread(_build_collection, coll, lang)
         except Exception as e:
-            logger.warning(f"hadith build failed for {coll}: {e}")
+            logger.warning(f"hadith build failed for {coll}/{lang}: {e}")
             raise HTTPException(502, "Could not load this hadith collection")
-        _CACHE[coll] = data
+        _CACHE[key] = data
         return data
 
 
@@ -115,7 +136,7 @@ async def hadith_collections():
     """The two Sahihs (lightweight — totals appear once a collection is opened)."""
     out = []
     for cid, meta in COLLECTIONS.items():
-        cached = _CACHE.get(cid)
+        cached = _CACHE.get((cid, DEFAULT_HADITH_LANG))
         out.append({
             "id": cid,
             **meta,
@@ -126,10 +147,10 @@ async def hadith_collections():
 
 
 @router.get("/hadith/{coll}/sections")
-async def hadith_sections(coll: str):
+async def hadith_sections(coll: str, lang: str = DEFAULT_HADITH_LANG):
     if coll not in COLLECTIONS:
         raise HTTPException(404, "Unknown collection")
-    data = await _get_collection(coll)
+    data = await _get_collection(coll, lang)
     return {
         "id": coll,
         **COLLECTIONS[coll],
@@ -145,11 +166,15 @@ async def hadith_list(
     page: int = 0,
     limit: int = 15,
     q: Optional[int] = None,
+    lang: str = DEFAULT_HADITH_LANG,
 ):
-    """Paginated narrations. Filter by `section` (book number) or jump to `q` (hadith number)."""
+    """Paginated narrations. Filter by `section` (book number) or jump to `q` (hadith number).
+
+    `lang` selects a published translation edition (see HADITH_LANGS).
+    """
     if coll not in COLLECTIONS:
         raise HTTPException(404, "Unknown collection")
-    data = await _get_collection(coll)
+    data = await _get_collection(coll, lang)
     items = data["hadiths"]
 
     if q is not None:

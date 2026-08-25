@@ -23,9 +23,16 @@ import {
 import { cancelAdhanSchedule } from '../adhanSchedule';
 import { FadeInUp } from '../motion';
 import { TEXT_SIZES, TextSizeId, scaleOf, useTextScaleSetting } from '../textScale';
+import { LANGUAGES, LanguageId, useI18n } from '../i18n';
 import { PlayIcon, PauseIcon } from './Icons';
 
 type Gender = 'male' | 'female' | 'unspecified';
+
+// Size labels come from the active language, not TEXT_SIZES' English defaults.
+function sizeLabel(t: { sizeRegular: string; sizeLarge: string; sizeXLarge: string }, id: string) {
+  return id === 'large' ? t.sizeLarge : id === 'xlarge' ? t.sizeXLarge : t.sizeRegular;
+}
+
 
 export default function SettingsSheetBody({ onClose }: { onClose: () => void }) {
   const router = useRouter();
@@ -38,6 +45,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
   const [muezzinId, setMuezzinIdState] = useState<string>(MUEZZINS[0].id);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const { sizeId, setSizeId } = useTextScaleSetting();
+  const { lang, setLang, t } = useI18n();
 
   useEffect(() => {
     (async () => {
@@ -73,6 +81,17 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
       cancelAdhanSchedule().catch((e) => logError('settings.cancelSchedule', e));
     }
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+  };
+
+  const chooseLanguage = async (id: LanguageId) => {
+    if (id === lang) return;
+    if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+    const { needsRestart } = await setLang(id);
+    if (needsRestart) {
+      // reloadAsync handles this in a real build; if it didn't fire (Expo Go),
+      // the layout direction only applies on the next cold start.
+      notify(t.settingsLanguage, t.settingsRestartNote);
+    }
   };
 
   const chooseTextSize = (id: TextSizeId) => {
@@ -122,7 +141,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
       await AsyncStorage.setItem('asrSchool', String(asrSchool));
       if (Platform.OS !== 'web')
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      notify('Saved', 'Your settings are updated.');
+      notify(t.settingsSavedTitle, t.settingsSavedBody);
     } catch (e: any) {
       notify('Could not save', String(e?.message || e));
     }
@@ -168,10 +187,10 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
       contentContainerStyle={{ padding: Spacing.lg, paddingBottom: Spacing.xxl }}
       testID="settings-sheet"
     >
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>{t.settingsTitle}</Text>
 
-      <Section title="PROFILE" delay={60}>
-        <Text style={styles.label}>Name</Text>
+      <Section title={t.settingsProfile} delay={60}>
+        <Text style={styles.label}>{t.settingsName}</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -180,7 +199,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
           testID="settings-name-input"
         />
 
-        <Text style={[styles.label, { marginTop: Spacing.md }]}>How we address you</Text>
+        <Text style={[styles.label, { marginTop: Spacing.md }]}>{t.settingsAddressYou}</Text>
         <View style={styles.genderRow}>
           {(['male', 'female'] as Gender[]).map((g) => (
             <TouchableOpacity
@@ -201,8 +220,8 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
 
       </Section>
 
-      <Section title="PRAYER TIMINGS" delay={130}>
-        <Text style={styles.label}>Asr Calculation (School)</Text>
+      <Section title={t.settingsPrayerTimings} delay={130}>
+        <Text style={styles.label}>{t.settingsAsrSchool}</Text>
         <View style={styles.genderRow}>
           <TouchableOpacity
             onPress={() => {
@@ -252,12 +271,12 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
         )}
       </Section>
 
-      <Section title="ADHAN" delay={200}>
+      <Section title={t.settingsAdhan} delay={200}>
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowTitle}>Sound the adhan</Text>
+            <Text style={styles.rowTitle}>{t.settingsSoundAdhan}</Text>
             <Text style={styles.rowSub}>
-              Plays the call when a prayer enters while the app is open
+              {t.settingsSoundAdhanSub}
             </Text>
           </View>
           <Switch
@@ -271,7 +290,7 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
 
         {adhanOn && (
           <View style={{ marginTop: Spacing.md }}>
-            <Text style={styles.label}>Muezzin</Text>
+            <Text style={styles.label}>{t.settingsMuezzin}</Text>
             {MUEZZINS.map((m) => {
               const active = muezzinId === m.id;
               const isPreviewing = previewing === m.id;
@@ -312,51 +331,77 @@ export default function SettingsSheetBody({ onClose }: { onClose: () => void }) 
         )}
       </Section>
 
-      <Section title="READING" delay={260}>
-        <Text style={styles.label}>Text size</Text>
-        <Text style={styles.rowSub}>
-          Sets the size of Arabic, transliteration and translation across the Quran,
-          Duas, Adhkar, Hadith and Feelings.
-        </Text>
-        <View style={styles.sizeRow}>
-          {TEXT_SIZES.map((t) => {
-            const active = sizeId === t.id;
+      <Section title={t.settingsLanguage.toUpperCase()} delay={245}>
+        <Text style={styles.rowSub}>{t.settingsLanguageSub}</Text>
+        <View style={{ marginTop: Spacing.md }}>
+          {LANGUAGES.map((l) => {
+            const active = lang === l.id;
             return (
               <TouchableOpacity
-                key={t.id}
-                onPress={() => chooseTextSize(t.id)}
+                key={l.id}
+                onPress={() => chooseLanguage(l.id)}
+                style={[styles.muezzinRow, active && styles.muezzinRowActive]}
+                testID={`settings-lang-${l.id}`}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.radio, active && styles.radioActive]}>
+                  {active ? <View style={styles.radioDot} /> : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.muezzinName, active && { color: Colors.gold }]}>{l.label}</Text>
+                  <Text style={styles.muezzinPlace}>{l.english}{l.rtl ? '  ·  RTL' : ''}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        <Text style={styles.adhanNote}>{t.settingsRestartNote}</Text>
+      </Section>
+
+      <Section title={t.settingsReading} delay={260}>
+        <Text style={styles.label}>{t.settingsTextSize}</Text>
+        <Text style={styles.rowSub}>
+          {t.settingsTextSizeSub}
+        </Text>
+        <View style={styles.sizeRow}>
+          {TEXT_SIZES.map((sz) => {
+            const active = sizeId === sz.id;
+            return (
+              <TouchableOpacity
+                key={sz.id}
+                onPress={() => chooseTextSize(sz.id)}
                 style={[styles.sizePill, active && styles.sizePillActive]}
-                testID={`settings-textsize-${t.id}`}
+                testID={`settings-textsize-${sz.id}`}
                 activeOpacity={0.85}
               >
                 <Text
                   style={[
                     styles.sizePillText,
-                    { fontSize: Math.round(13 * t.scale) },
+                    { fontSize: Math.round(13 * sz.scale) },
                     active && { color: Colors.gold },
                   ]}
                 >
-                  {t.label}
+                  {sizeLabel(t, sz.id)}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
         <Text style={[styles.sizePreview, { fontSize: Math.round(15 * scaleOf(sizeId)), lineHeight: Math.round(26 * scaleOf(sizeId)) }]}>
-          Indeed, with hardship comes ease.
+          {t.sizePreviewLine}
         </Text>
       </Section>
 
       <TouchableOpacity style={styles.cta} onPress={save} testID="settings-save-btn">
-        <Text style={styles.ctaText}>Save changes</Text>
+        <Text style={styles.ctaText}>{t.settingsSaveChanges}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={signOut} testID="settings-signout-btn">
-        <Text style={styles.signOut}>Sign out</Text>
+        <Text style={styles.signOut}>{t.settingsSignOut}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={deleteAccount} testID="settings-delete-account-btn">
-        <Text style={styles.deleteAccount}>Delete account & data</Text>
+        <Text style={styles.deleteAccount}>{t.settingsDeleteAccount}</Text>
       </TouchableOpacity>
 
       <Text style={styles.about}>Made with love for the Ummah ✦</Text>

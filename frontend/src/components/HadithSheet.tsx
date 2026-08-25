@@ -11,6 +11,7 @@ import {
 } from '../api';
 import { logError } from '../log';
 import { useTextScale } from '../textScale';
+import { useI18n } from '../i18n';
 import { FadeInUp } from '../motion';
 import { HeartIcon, ShareIcon, SearchIcon } from './Icons';
 
@@ -18,6 +19,8 @@ const FAV_KEY = 'hadithFavorites';
 
 export default function HadithSheetBody() {
   const ts = useTextScale();
+  const { language } = useI18n();
+  const hadithLang = language.hadithPrefix;
   const [view, setView] = useState<'collections' | 'sections' | 'list'>('collections');
   const [collections, setCollections] = useState<HadithCollection[]>([]);
   const [loadingCols, setLoadingCols] = useState(true);
@@ -62,7 +65,7 @@ export default function HadithSheetBody() {
     setError(false);
     setLoadingSections(true);
     try {
-      setSections(await api.hadithSections(c.id));
+      setSections(await api.hadithSections(c.id, hadithLang));
     } catch (e) {
       logError('hadith.sections', e);
       setError(true);
@@ -79,7 +82,7 @@ export default function HadithSheetBody() {
     setError(false);
     setLoadingList(true);
     try {
-      const r = await api.hadithList(c, { section: s.number, page: 0, limit: 15 });
+      const r = await api.hadithList(c, { section: s.number, page: 0, limit: 15, lang: hadithLang });
       setItems(r.hadiths);
       setHasMore(r.has_more);
     } catch (e) {
@@ -94,7 +97,7 @@ export default function HadithSheetBody() {
     setLoadingMore(true);
     try {
       const next = page + 1;
-      const r = await api.hadithList(coll.id, { section: section.number, page: next, limit: 15 });
+      const r = await api.hadithList(coll.id, { section: section.number, page: next, limit: 15, lang: hadithLang });
       setItems((prev) => [...prev, ...r.hadiths]);
       setPage(next);
       setHasMore(r.has_more);
@@ -115,7 +118,7 @@ export default function HadithSheetBody() {
     setError(false);
     setLoadingList(true);
     try {
-      const r = await api.hadithList(coll.id, { q: n });
+      const r = await api.hadithList(coll.id, { q: n, lang: hadithLang });
       setItems(r.hadiths);
     } catch (e) {
       logError('hadith.jump', e);

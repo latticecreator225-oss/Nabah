@@ -42,9 +42,19 @@ import { scheduleAdhan } from '../src/adhanSchedule';
 import { scheduleReminders } from '../src/reminderSchedule';
 import { AmbientField, FadeInUp } from '../src/motion';
 import { logError } from '../src/log';
+import { useT } from '../src/i18n';
 
 type PrayerKey = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
 const PRAY_ORDER: PrayerKey[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
+// Prayer *keys* stay English (they index the API payload); only the label shown
+// to the reader is translated.
+function prayerLabel(t: any, k: PrayerKey): string {
+  return {
+    Fajr: t.prayerFajr, Dhuhr: t.prayerDhuhr, Asr: t.prayerAsr,
+    Maghrib: t.prayerMaghrib, Isha: t.prayerIsha,
+  }[k];
+}
 
 // When the user hasn't granted location (or onboarding skipped it), prayer
 // times are anchored to Makkah so the home screen still has something to show.
@@ -75,6 +85,7 @@ const OPENABLE_SHEETS = [
 export default function Home() {
   const router = useRouter();
   const params = useLocalSearchParams<{ open?: string | string[] }>();
+  const t = useT();
   const [userName, setUserName] = useState<string>('');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
@@ -300,8 +311,8 @@ export default function Home() {
     const ord = PRAY_ORDER.indexOf(nextName);
     const after = ord >= 0 && ord < PRAY_ORDER.length - 1 ? PRAY_ORDER[ord + 1] : null;
     const afterTime = after ? formatTime(times[after as keyof PrayerTimes] as string) : '';
-    return after ? `at ${at}  ·  ${after} at ${afterTime}` : `at ${at}`;
-  }, [times, nextName]);
+    return after ? `${at}  ·  ${prayerLabel(t, after)} ${afterTime}` : at;
+  }, [times, nextName, t]);
 
   const openSheet = useCallback((s: typeof sheet) => {
     if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
@@ -405,20 +416,20 @@ export default function Home() {
         >
           <Animated.View style={[styles.nextGlow, { opacity: shimmer }]} />
           <View style={styles.cardHeadRow}>
-            <Text style={styles.cardLabel}>NEXT PRAYER</Text>
+            <Text style={styles.cardLabel}>{t.homeNextPrayer}</Text>
             <Text style={styles.cardArrow}>›</Text>
           </View>
-          <Text style={styles.prayerName}>{nextName || '—'}</Text>
+          <Text style={styles.prayerName}>{nextName ? prayerLabel(t, nextName) : '—'}</Text>
           <Text style={styles.countdown} testID="prayer-countdown">
             {countdown}
           </Text>
           <Text style={styles.subInfo}>{subInfo}</Text>
           {usingFallbackLocation ? (
             <Text style={styles.cardNote}>
-              Showing times for Makkah · enable location for your area
+              {t.homeFallbackLocation}
             </Text>
           ) : timesStale ? (
-            <Text style={styles.cardNote}>Offline · showing last saved times</Text>
+            <Text style={styles.cardNote}>{t.homeOfflineTimes}</Text>
           ) : null}
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
@@ -435,16 +446,16 @@ export default function Home() {
         >
           <View style={styles.quranGlow} />
           <View style={styles.sunnahHead}>
-            <Text style={styles.quranEyebrow}>THE NOBLE QURAN</Text>
+            <Text style={styles.quranEyebrow}>{t.homeQuranEyebrow}</Text>
             <Text style={styles.quranAr}>القرآن</Text>
           </View>
           <Text style={styles.quranTitle}>
-            {quranLastRead ? `Continue · ${quranLastRead.surahName}` : 'Begin with Al-Fātiḥa'}
+            {quranLastRead ? `${t.homeQuranContinue} · ${quranLastRead.surahName}` : t.homeQuranBegin}
           </Text>
           <Text style={styles.quranCaption}>
             {quranLastRead
-              ? `Ayah ${quranLastRead.ayah}  ·  resume your recitation`
-              : '114 surahs · recited, translated, transliterated'}
+              ? `${t.quranAyat} ${quranLastRead.ayah}  ·  ${t.homeQuranCaptionResume}`
+              : t.homeQuranCaptionNew}
           </Text>
           <View style={styles.sunnahFooter}>
             <View style={styles.sunnahHairline} />
@@ -459,22 +470,22 @@ export default function Home() {
           <FeatureTile
             testID="tile-tasbeeh"
             icon={<TasbeehIcon size={24} />}
-            title="Tasbeeh"
-            caption="Counter"
+            title={t.homeTasbeeh}
+            caption={t.homeTasbeehSub}
             onPress={() => openSheet('tasbeeh')}
           />
           <FeatureTile
             testID="tile-feelings"
             icon={<HeartIcon size={24} />}
-            title="Feelings"
-            caption="Find your Ayah"
+            title={t.homeFeelings}
+            caption={t.homeFeelingsSub}
             onPress={() => openSheet('feelings')}
           />
           <FeatureTile
             testID="tile-azkar"
             icon={<BookIcon size={24} />}
-            title="Adhkar"
-            caption="Remembrance"
+            title={t.homeAdhkar}
+            caption={t.homeAdhkarSub}
             onPress={() => openSheet('azkar')}
           />
         </View>
@@ -489,12 +500,12 @@ export default function Home() {
         >
           <View style={styles.sunnahGlow} />
           <View style={styles.sunnahHead}>
-            <Text style={styles.sunnahEyebrow}>THE SUNNAH COMPENDIUM</Text>
+            <Text style={styles.sunnahEyebrow}>{t.homeSunnahEyebrow}</Text>
             <Text style={styles.sunnahAr}>السنة</Text>
           </View>
-          <Text style={styles.sunnahTitle}>Revive a forgotten Sunnah</Text>
+          <Text style={styles.sunnahTitle}>{t.homeSunnahTitle}</Text>
           <Text style={styles.sunnahCaption}>
-            60+ practices, indexed by hour & intention
+            {t.homeSunnahCaption}
           </Text>
           <View style={styles.sunnahFooter}>
             <View style={styles.sunnahHairline} />
@@ -513,8 +524,8 @@ export default function Home() {
           <View style={styles.rhythmsLeft}>
             <Text style={styles.rhythmsAr}>الصحيحان</Text>
             <View>
-              <Text style={styles.rhythmsLabel}>SAHIH BUKHARI & MUSLIM</Text>
-              <Text style={styles.rhythmsSub}>The two Sahihs, in full · authenticated</Text>
+              <Text style={styles.rhythmsLabel}>{t.homeHadithLabel}</Text>
+              <Text style={styles.rhythmsSub}>{t.homeHadithSub}</Text>
             </View>
           </View>
           <Text style={styles.rhythmsArrow}>›</Text>
@@ -531,8 +542,8 @@ export default function Home() {
           <View style={styles.rhythmsLeft}>
             <Text style={styles.rhythmsAr}>الأدعية</Text>
             <View>
-              <Text style={styles.rhythmsLabel}>DUAS & SUPPLICATIONS</Text>
-              <Text style={styles.rhythmsSub}>Authentic words for every moment</Text>
+              <Text style={styles.rhythmsLabel}>{t.homeDuasLabel}</Text>
+              <Text style={styles.rhythmsSub}>{t.homeDuasSub}</Text>
             </View>
           </View>
           <Text style={styles.rhythmsArrow}>›</Text>
@@ -549,8 +560,8 @@ export default function Home() {
           <View style={styles.rhythmsLeft}>
             <Text style={styles.rhythmsAr}>تذكيرات</Text>
             <View>
-              <Text style={styles.rhythmsLabel}>REMINDERS</Text>
-              <Text style={styles.rhythmsSub}>Prayers, adhkar & the sacred calendar</Text>
+              <Text style={styles.rhythmsLabel}>{t.homeRemindersLabel}</Text>
+              <Text style={styles.rhythmsSub}>{t.homeRemindersSub}</Text>
             </View>
           </View>
           <Text style={styles.rhythmsArrow}>›</Text>

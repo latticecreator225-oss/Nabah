@@ -9,6 +9,7 @@ import { Colors, Fonts, Radius, Spacing } from '../theme';
 import { api, DuaCategory, DuaCategoryDetail, Dua } from '../api';
 import { logError } from '../log';
 import { useTextScale } from '../textScale';
+import { useT } from '../i18n';
 import { FadeInUp } from '../motion';
 import { HeartIcon, ShareIcon } from './Icons';
 
@@ -19,6 +20,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const FAV_KEY = 'duaFavorites';
 
 export default function DuasSheetBody() {
+  const t = useT();
   const ts = useTextScale();
   const [categories, setCategories] = useState<DuaCategory[]>([]);
   const [active, setActive] = useState<DuaCategoryDetail | null>(null);
@@ -166,8 +168,8 @@ export default function DuasSheetBody() {
     <View style={styles.root} testID="duas-sheet">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>الأدعية  ·  SUPPLICATIONS</Text>
-        <Text style={styles.title}>The Fortress of Duas</Text>
-        <Text style={styles.subtitle}>Authentic words for the moments of your day.</Text>
+        <Text style={styles.title}>{t.duasTitle}</Text>
+        <Text style={styles.subtitle}>{t.duasSubtitle}</Text>
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>

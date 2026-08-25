@@ -10,9 +10,11 @@ import { api, SavedAyah } from '../api';
 import { confirmDestructive } from '../alerts';
 import { FadeInUp } from '../motion';
 import { useTextScale } from '../textScale';
+import { useT } from '../i18n';
 import { HeartIcon, ShareIcon } from './Icons';
 
 export default function BookmarksSheetBody() {
+  const t = useT();
   const ts = useTextScale();
   const [items, setItems] = useState<SavedAyah[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +69,8 @@ export default function BookmarksSheetBody() {
   return (
     <View style={styles.root} testID="bookmarks-sheet">
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>SAVED — حفظ</Text>
-        <Text style={styles.title}>Your collected verses</Text>
+        <Text style={styles.eyebrow}>{t.bookmarksEyebrow} — حفظ</Text>
+        <Text style={styles.title}>{t.bookmarksTitle}</Text>
         <Text style={styles.sub}>
           {items.length === 0
             ? 'Save ayahs from the Feelings sheet — they will rest here.'
@@ -86,7 +88,7 @@ export default function BookmarksSheetBody() {
         {items.length === 0 ? (
           <View style={styles.empty}>
             <HeartIcon size={32} color={Colors.goldMuted} />
-            <Text style={styles.emptyText}>Nothing here yet.</Text>
+            <Text style={styles.emptyText}>{t.nothingHereYet}</Text>
           </View>
         ) : (
           items.map((a, idx) => (
@@ -104,10 +106,10 @@ export default function BookmarksSheetBody() {
               <View style={styles.actions}>
                 <TouchableOpacity onPress={() => share(a)} style={styles.actionBtn} testID={`bookmark-share-${a.id}`}>
                   <ShareIcon size={14} />
-                  <Text style={styles.actionTxt}>Share</Text>
+                  <Text style={styles.actionTxt}>{t.share}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => remove(a)} style={[styles.actionBtn, styles.removeBtn]} testID={`bookmark-remove-${a.id}`}>
-                  <Text style={[styles.actionTxt, { color: Colors.textDim }]}>Remove</Text>
+                  <Text style={[styles.actionTxt, { color: Colors.textDim }]}>{t.remove}</Text>
                 </TouchableOpacity>
               </View>
               </View>

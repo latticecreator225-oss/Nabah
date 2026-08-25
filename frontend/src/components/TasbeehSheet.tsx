@@ -16,6 +16,7 @@ import ProgressRing from './ProgressRing';
 import { CheckIcon } from './Icons';
 import { Bump } from '../motion';
 import { useTextScale } from '../textScale';
+import { useT } from '../i18n';
 
 type Dhikr = { id: string; ar: string; en: string; target: number };
 
@@ -29,6 +30,7 @@ const PRESETS: Dhikr[] = [
 type Props = { onClose: () => void };
 
 export default function TasbeehSheetBody({ onClose }: Props) {
+  const t = useT();
   const ts = useTextScale();
   const [selected, setSelected] = useState<Dhikr>(PRESETS[0]);
   const [count, setCount] = useState(0);
@@ -125,7 +127,7 @@ export default function TasbeehSheetBody({ onClose }: Props) {
   return (
     <View style={styles.root} testID="tasbeeh-sheet">
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Tasbeeh</Text>
+        <Text style={styles.title}>{t.tasbeehTitle}</Text>
       </View>
 
       {/* Everything below the title scrolls — without this, the custom-dhikr
@@ -148,7 +150,7 @@ export default function TasbeehSheetBody({ onClose }: Props) {
             onPress={() => setShowCustom(!showCustom)}
             style={[styles.chip, showCustom && styles.chipActive]}
           >
-            <Text style={[styles.chipText, showCustom && { color: Colors.gold }]}>Custom</Text>
+            <Text style={[styles.chipText, showCustom && { color: Colors.gold }]}>{t.tasbeehCustom}</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -157,14 +159,14 @@ export default function TasbeehSheetBody({ onClose }: Props) {
             <TextInput
               value={customEn}
               onChangeText={setCustomEn}
-              placeholder="Your dhikr (English)"
+              placeholder={t.tasbeehDhikrEn}
               placeholderTextColor={Colors.textDim}
               style={styles.customInput}
             />
             <TextInput
               value={customAr}
               onChangeText={setCustomAr}
-              placeholder="Your dhikr (Arabic, optional)"
+              placeholder={t.tasbeehDhikrAr}
               placeholderTextColor={Colors.textDim}
               style={[styles.customInput, { fontFamily: Fonts.arabic, fontSize: 18, textAlign: 'right' }]}
             />
@@ -173,7 +175,7 @@ export default function TasbeehSheetBody({ onClose }: Props) {
                 value={customTarget}
                 onChangeText={setCustomTarget}
                 keyboardType="number-pad"
-                placeholder="Target"
+                placeholder={t.tasbeehTarget}
                 placeholderTextColor={Colors.textDim}
                 style={[styles.customInput, { flex: 1 }]}
               />
@@ -192,7 +194,7 @@ export default function TasbeehSheetBody({ onClose }: Props) {
                 }}
                 style={styles.customApply}
               >
-                <Text style={styles.customApplyText}>Use</Text>
+                <Text style={styles.customApplyText}>{t.tasbeehUse}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -221,7 +223,7 @@ export default function TasbeehSheetBody({ onClose }: Props) {
               {justCompleted && (
                 <View style={[styles.completedRow, StyleSheet.absoluteFillObject]}>
                   <CheckIcon size={28} />
-                  <Text style={styles.completedText}>complete</Text>
+                  <Text style={styles.completedText}>{t.tasbeehComplete}</Text>
                 </View>
               )}
             </View>
@@ -233,11 +235,11 @@ export default function TasbeehSheetBody({ onClose }: Props) {
         <View style={styles.footerRow}>
           <Bump value={session}>
             <Text style={styles.sessionText} testID="tasbeeh-session">
-              Session  ·  {session}
+              {t.tasbeehSession}  ·  {session}
             </Text>
           </Bump>
           <TouchableOpacity onPress={reset} testID="tasbeeh-reset-btn" style={styles.resetBtn}>
-            <Text style={styles.resetText}>Reset</Text>
+            <Text style={styles.resetText}>{t.tasbeehReset}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
