@@ -87,6 +87,13 @@ android-sdk/
 # …but always track the example templates (they carry no secrets)
 !.env.example
 !**/.env.example
+# …and frontend/.env.production: just the public backend URL, no secrets.
+# `eas update` (unlike `eas build`) does not read eas.json's per-profile env
+# blocks — it loads .env.production via Expo's NODE_ENV convention. Without
+# this file committed, any `eas update` run baked in frontend/.env's
+# EXPO_PUBLIC_BACKEND_URL=http://localhost:8000 (the local-dev value) into the
+# production OTA bundle, breaking every network call on every real device.
+!frontend/.env.production
 credentials.json
 *.key
 .credentials
