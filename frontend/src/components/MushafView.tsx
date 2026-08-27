@@ -13,14 +13,35 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
-import { Colors, Fonts, Spacing } from '../theme';
-import { api, MushafPage, MushafWord } from '../api';
+import { Colors, Fonts, Spacing, Radius } from '../theme';
+import { api, MushafPage, MushafScript, MushafWord } from '../api';
 import { useTextScale } from '../textScale';
 import { logError } from '../log';
 import EnglishOnlyNotice from './EnglishOnlyNotice';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const TOTAL_PAGES = 604;
+
+// Tajweed rule → colour, tuned to Nabah's dark-luxury palette rather than the
+// primary-colour scheme printed Mushafs use (which reads as gaudy on black).
+// Rules are grouped by what they mean acoustically, so relatives share a hue.
+const TAJWEED_COLORS: Record<string, string> = {
+  ghunnah: '#E0A15C', // nasalisation — warm amber
+  ikhafa: '#E0A15C',
+  ikhafa_shafawi: '#E0A15C',
+  idgham_ghunnah: '#7FB88A', // merging (with ghunnah) — soft jade
+  idgham_shafawi: '#7FB88A',
+  idgham_wo_ghunnah: '#5F9E77', // merging (no ghunnah) — deeper jade
+  iqlab: '#6FA8C9', // conversion — dusty teal
+  qalaqah: '#C97A6D', // echo/bounce (API spelling of qalqalah) — muted rust
+  madda_necessary: '#C9A355', // elongation — gold family, darkest→lightest by length
+  madda_obligatory: '#D8B978',
+  madda_normal: '#E4CB9B',
+  madda_permissible: '#E4CB9B',
+  laam_shamsiyah: '#6B6558', // assimilated/silent letters — muted taupe
+  ham_wasl: '#6B6558',
+  slnt: '#6B6558',
+};
 
 type Props = {
   initialPage?: number;
@@ -36,6 +57,7 @@ export default function MushafView({ initialPage = 1, onBack }: Props) {
   // they're advancing from.
   const currentIndexRef = useRef(startIndex);
   const [tapped, setTapped] = useState<MushafWord | null>(null);
+  const [script, setScript] = useState<MushafScript>('uthmani');
   const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1), []);
 
   const goTo = useCallback((index: number) => {
@@ -51,8 +73,19 @@ export default function MushafView({ initialPage = 1, onBack }: Props) {
           <Text style={styles.backChev}>‹</Text>
           <Text style={styles.backText}>List</Text>
         </Pressable>
-        <Text style={styles.topHint}>Tap a word for its meaning</Text>
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'web') Haptics.selectionAsync().catch(() => {});
+            setScript((s) => (s === 'uthmani' ? 'indopak' : 'uthmani'));
+          }}
+          style={styles.scriptToggle}
+          testID="mushaf-script-toggle"
+          hitSlop={8}
+        >
+          <Text style={styles.scriptToggleText}>{script === 'uthmani' ? 'Uthmani' : 'Indo-Pak'}</Text>
+        </Pressable>
       </View>
+      <Text style={styles.topHint}>Tap a word for its meaning</Text>
 
       {/* The word-by-word gloss is sourced in English only (quran.com) — the
           Arabic text itself is unaffected regardless of interface language. */}
@@ -83,8 +116,9 @@ export default function MushafView({ initialPage = 1, onBack }: Props) {
           currentIndexRef.current = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
         }}
         renderItem={({ item }) => (
-          <MushafPageCell page={item} width={SCREEN_W} onWordPress={setTapped} />
+          <MushafPageCell page={item} width={SCREEN_W} script={script} onWordPress={setTapped} />
         )}
+        extraData={script}
         style={{ flex: 1 }}
       />
 
@@ -118,11 +152,17 @@ export default function MushafView({ initialPage = 1, onBack }: Props) {
   );
 }
 
+function surahForVerseKey(data: MushafPage, verseKey: string) {
+  const num = parseInt(verseKey.split(':')[0], 10);
+  return data.surahs.find((s) => s.number === num) || null;
+}
+
 function MushafPageCell({
-  page, width, onWordPress,
+  page, width, script, onWordPress,
 }: {
   page: number;
   width: number;
+  script: MushafScript;
   onWordPress: (w: MushafWord) => void;
 }) {
   const [data, setData] = useState<MushafPage | null>(null);
@@ -131,11 +171,12 @@ function MushafPageCell({
 
   React.useEffect(() => {
     let cancelled = false;
-    api.mushafPage(page)
+    setData(null);
+    api.mushafPage(page, script)
       .then((d) => { if (!cancelled) setData(d); })
       .catch((e) => { if (!cancelled) { logError('mushaf.page', e); setError(true); } });
     return () => { cancelled = true; };
-  }, [page]);
+  }, [page, script]);
 
   if (error) {
     return (
@@ -162,25 +203,51 @@ function MushafPageCell({
         <Text style={styles.pageMeta}>{page}</Text>
       </View>
       <View style={styles.pageBody}>
-        {data.lines.map((line) => (
-          <Text
-            key={line.line}
-            style={[styles.mushafLine, ts.size(26, 52)]}
-            allowFontScaling={false}
-          >
-            {line.words.map((w, i) => (
-              <Text
-                key={i}
-                onPress={() => onWordPress(w)}
-                suppressHighlighting={false}
-                style={w.is_end ? styles.ayahEnd : styles.word}
-              >
-                {w.arabic}
-                {i < line.words.length - 1 ? ' ' : ''}
+        {data.lines.map((line) => {
+          const opener = line.words.find((w) => w.first_ayah);
+          const openerSurah = opener ? surahForVerseKey(data, opener.verse_key) : null;
+          const skipBismillah = opener ? opener.verse_key.startsWith('9:') : false;
+          return (
+            <React.Fragment key={line.line}>
+              {openerSurah ? (
+                <View style={styles.surahBand}>
+                  <View style={styles.surahBandRule} />
+                  <Text style={styles.surahBandName} allowFontScaling={false}>
+                    {openerSurah.name}
+                  </Text>
+                  <View style={styles.surahBandRule} />
+                </View>
+              ) : null}
+              {openerSurah && !skipBismillah ? (
+                <Text style={styles.bismillah} allowFontScaling={false}>
+                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </Text>
+              ) : null}
+              <Text style={[styles.mushafLine, ts.size(26, 52)]} allowFontScaling={false}>
+                {line.words.map((w, i) => (
+                  <Text
+                    key={i}
+                    onPress={() => onWordPress(w)}
+                    suppressHighlighting={false}
+                    style={w.is_end ? styles.ayahEnd : styles.word}
+                  >
+                    {script === 'uthmani' && w.tajweed.length > 0
+                      ? w.tajweed.map((seg, si) => (
+                          <Text
+                            key={si}
+                            style={seg.rule ? { color: TAJWEED_COLORS[seg.rule] || Colors.textPrimary } : undefined}
+                          >
+                            {seg.text}
+                          </Text>
+                        ))
+                      : w.arabic}
+                    {i < line.words.length - 1 ? ' ' : ''}
+                  </Text>
+                ))}
               </Text>
-            ))}
-          </Text>
-        ))}
+            </React.Fragment>
+          );
+        })}
       </View>
       <Text style={styles.pageFoot}>{page}</Text>
     </View>
@@ -197,7 +264,15 @@ const styles = StyleSheet.create({
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   backChev: { fontFamily: Fonts.display, fontSize: 20, color: Colors.gold, lineHeight: 20 },
   backText: { fontFamily: Fonts.bodyMedium, color: Colors.gold, fontSize: 13 },
-  topHint: { fontFamily: Fonts.label, fontSize: 9, letterSpacing: 1.2, color: Colors.textDim, textTransform: 'uppercase' },
+  topHint: {
+    fontFamily: Fonts.label, fontSize: 9, letterSpacing: 1.2, color: Colors.textDim,
+    textTransform: 'uppercase', textAlign: 'center', paddingTop: Spacing.xs,
+  },
+  scriptToggle: {
+    borderWidth: 1, borderColor: Colors.borderSubtle, borderRadius: 999,
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
+  },
+  scriptToggleText: { fontFamily: Fonts.label, fontSize: 10, letterSpacing: 1, color: Colors.gold },
   englishNotice: { marginHorizontal: Spacing.lg, marginTop: Spacing.sm, marginBottom: 0 },
 
   page: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
@@ -216,6 +291,21 @@ const styles = StyleSheet.create({
   },
   word: { fontFamily: Fonts.arabic },
   ayahEnd: { fontFamily: Fonts.arabic, color: Colors.gold, fontSize: 18 },
+  surahBand: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    marginTop: Spacing.md, marginBottom: Spacing.sm,
+    paddingVertical: 8, paddingHorizontal: Spacing.md,
+    borderWidth: 1, borderColor: Colors.gold, borderRadius: Radius.md,
+    backgroundColor: 'rgba(201,163,85,0.08)',
+  },
+  surahBandRule: { flex: 1, height: 1, backgroundColor: Colors.gold, opacity: 0.5 },
+  surahBandName: {
+    fontFamily: Fonts.arabic, fontSize: 22, color: Colors.gold, textAlign: 'center',
+  },
+  bismillah: {
+    fontFamily: Fonts.arabic, fontSize: 22, color: Colors.textPrimary,
+    textAlign: 'center', writingDirection: 'rtl', marginBottom: Spacing.sm,
+  },
   pageFoot: { fontFamily: Fonts.label, fontSize: 10, color: Colors.textDim, textAlign: 'center', paddingVertical: Spacing.sm },
 
   edgeZoneLeft: { position: 'absolute', top: 60, bottom: 90, left: 0, width: '18%' },

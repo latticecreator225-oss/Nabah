@@ -8,6 +8,7 @@ verse-by-verse recitation audio built directly from everyayah.com (chosen by
 Responses are cached in-process (the text never changes).
 """
 import asyncio
+import re
 from typing import Dict, List, Optional, Tuple
 
 import requests
@@ -286,33 +287,76 @@ async def quran_surah(
 
 
 # ─────────────────────────── Mushaf (page view) ───────────────────────────
-# The standard 604-page Madani Mushaf layout, with word-by-word glosses.
-# quran.com's API carries the real per-word line placement used in that
-# printed Mushaf (`line_number`, page-relative) plus a word-by-word English
-# translation and transliteration in the same call — alquran.cloud has
-# neither. Text is never re-derived here; it comes straight from the source.
+# The standard 604-page Madani Mushaf layout, with word-by-word glosses and
+# Tajweed colour-coding. quran.com's API carries the real per-word line
+# placement used in that printed Mushaf (`line_number`, page-relative), a
+# word-by-word English translation + transliteration, and Tajweed rule
+# markup on the Uthmani script (`text_uthmani_tajweed`, `<rule class=X>`
+# spans) — alquran.cloud (used by the list view) has none of this. The
+# Indo-Pak line breaks are NOT independently modelled here: `text_indopak`
+# renders in the *same* line/page grouping as the Uthmani text (that's the
+# only pagination quran.com exposes), so it won't match a physically printed
+# Indo-Pak Mushaf's exact line wraps, and it has no Tajweed data at all —
+# both are quran.com API limits, not something to fix by inventing our own
+# pagination. Text is never re-derived; it comes straight from the source.
 QURAN_COM = "https://api.quran.com/api/v4"
 TOTAL_MUSHAF_PAGES = 604
-_MUSHAF_CACHE: Dict[int, dict] = {}
+_MUSHAF_CACHE: Dict[Tuple[int, str], dict] = {}
+MUSHAF_SCRIPTS = {"uthmani", "indopak"}
+
+_TAJWEED_SPAN_RE = re.compile(r"<span[^>]*>(.*?)</span>")
+_TAJWEED_RULE_RE = re.compile(r"<(?:tajweed|rule) class=([a-z_]+)>(.*?)</(?:tajweed|rule)>")
+
+
+def _parse_tajweed(marked: Optional[str]) -> List[dict]:
+    """`text_uthmani_tajweed` uses `<tajweed class=X>...</tajweed>` (verse
+    level) / `<rule class=X>...</rule>` (word level) spans around the letters
+    a Tajweed rule applies to. Splits it into plain-vs-ruled segments the
+    client can colour: `[{"text": "...", "rule": "ghunnah" | None}, ...]`.
+    """
+    if not marked:
+        return []
+    # The ayah-end number marker (`<span class=end>١</span>`) isn't a Tajweed
+    # rule — it's identified separately via char_type_name=="end" — so unwrap
+    # it to plain text rather than leaving the tag sitting in the output.
+    marked = _TAJWEED_SPAN_RE.sub(r"\1", marked)
+    segments: List[dict] = []
+    pos = 0
+    for m in _TAJWEED_RULE_RE.finditer(marked):
+        if m.start() > pos:
+            plain = marked[pos:m.start()]
+            if plain:
+                segments.append({"text": plain, "rule": None})
+        segments.append({"text": m.group(2), "rule": m.group(1)})
+        pos = m.end()
+    if pos < len(marked):
+        tail = marked[pos:]
+        if tail:
+            segments.append({"text": tail, "rule": None})
+    return segments
 
 
 @router.get("/quran/mushaf/{page}")
-async def quran_mushaf_page(page: int):
+async def quran_mushaf_page(page: int, script: str = "uthmani"):
     """One Mushaf page: its lines, each a left-to-right list of words in the
     order they're set on that printed line, each word carrying its own
-    translation + transliteration for a word-by-word reading."""
+    translation + transliteration for a word-by-word reading, plus Tajweed
+    segments when `script=uthmani`. `first_ayah` flags the word that opens a
+    new surah, so the client can draw a surah-header band + Bismillah there."""
     if page < 1 or page > TOTAL_MUSHAF_PAGES:
         raise HTTPException(404, "Page not found (1-604)")
-    if page in _MUSHAF_CACHE:
-        return _MUSHAF_CACHE[page]
+    if script not in MUSHAF_SCRIPTS:
+        script = "uthmani"
+    cache_key = (page, script)
+    if cache_key in _MUSHAF_CACHE:
+        return _MUSHAF_CACHE[cache_key]
     try:
+        word_fields = "line_number,char_type_name," + (
+            "text_uthmani,text_uthmani_tajweed" if script == "uthmani" else "text_indopak"
+        )
         r = requests.get(
             f"{QURAN_COM}/verses/by_page/{page}",
-            params={
-                "words": "true",
-                "word_fields": "text_uthmani,line_number,char_type_name",
-                "fields": "text_uthmani",
-            },
+            params={"words": "true", "word_fields": word_fields, "fields": "text_uthmani"},
             timeout=15,
         )
         r.raise_for_status()
@@ -323,19 +367,28 @@ async def quran_mushaf_page(page: int):
         juz = None
         for v in verses:
             juz = v.get("juz_number", juz)
-            surah_num = int(v["verse_key"].split(":")[0])
+            surah_num, ayah_num = v["verse_key"].split(":")
+            surah_num = int(surah_num)
             if surah_num not in surah_numbers:
                 surah_numbers.append(surah_num)
-            for w in v.get("words", []):
+            for i, w in enumerate(v.get("words", [])):
                 ln = w.get("line_number")
                 if ln is None:
                     continue
+                if script == "uthmani":
+                    arabic = w.get("text_uthmani") or w.get("text")
+                    tajweed = _parse_tajweed(w.get("text_uthmani_tajweed"))
+                else:
+                    arabic = w.get("text_indopak") or w.get("text")
+                    tajweed = []
                 lines.setdefault(ln, []).append({
-                    "arabic": w.get("text_uthmani") or w.get("text"),
+                    "arabic": arabic,
+                    "tajweed": tajweed,
                     "translation": (w.get("translation") or {}).get("text"),
                     "transliteration": (w.get("transliteration") or {}).get("text"),
                     "verse_key": v["verse_key"],
                     "is_end": w.get("char_type_name") == "end",
+                    "first_ayah": ayah_num == "1" and i == 0,
                 })
 
         surahs = await quran_surahs()
@@ -344,13 +397,14 @@ async def quran_mushaf_page(page: int):
             "page": page,
             "total_pages": TOTAL_MUSHAF_PAGES,
             "juz": juz,
+            "script": script,
             "surahs": [
                 {"number": n, "name": by_num[n]["name"], "englishName": by_num[n]["englishName"]}
                 for n in surah_numbers if n in by_num
             ],
             "lines": [{"line": k, "words": lines[k]} for k in sorted(lines.keys())],
         }
-        _MUSHAF_CACHE[page] = out
+        _MUSHAF_CACHE[cache_key] = out
         return out
     except HTTPException:
         raise

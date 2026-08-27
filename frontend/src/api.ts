@@ -215,18 +215,23 @@ export type SurahDetail = {
 export type Reciter = { id: string; name: string };
 
 // ── Mushaf (page view + word-by-word) ──
+export type MushafScript = 'uthmani' | 'indopak';
+export type TajweedSegment = { text: string; rule: string | null };
 export type MushafWord = {
   arabic: string;
+  tajweed: TajweedSegment[]; // Uthmani only — empty for indopak (no source data)
   translation: string | null;
   transliteration: string | null;
   verse_key: string; // "2:255"
   is_end: boolean; // the small ayah-number marker, not a real word
+  first_ayah: boolean; // opens a surah — draw the header band + Bismillah above it
 };
 export type MushafLine = { line: number; words: MushafWord[] };
 export type MushafPage = {
   page: number;
   total_pages: number;
   juz: number | null;
+  script: MushafScript;
   surahs: { number: number; name: string; englishName: string }[];
   lines: MushafLine[];
 };
@@ -371,8 +376,11 @@ export const api = {
       `/quran/surah/${n}?translation=${translation}&script=${script}&reciter=${reciter}`,
       `cache:quran:surah:${n}:${translation}:${script}:${reciter}`,
     ),
-  mushafPage: (page: number) =>
-    cachedGet<MushafPage>(`/quran/mushaf/${page}`, `cache:quran:mushaf:${page}`),
+  mushafPage: (page: number, script: MushafScript = 'uthmani') =>
+    cachedGet<MushafPage>(
+      `/quran/mushaf/${page}?script=${script}`,
+      `cache:quran:mushaf:${page}:${script}`,
+    ),
 
   // ── Duas (cached, offline-friendly) ──
   duaCategories: () => cachedGet<DuaCategory[]>('/duas/categories', 'cache:duas:categories'),
