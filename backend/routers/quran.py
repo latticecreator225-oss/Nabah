@@ -283,3 +283,77 @@ async def quran_surah(
     except Exception as e:
         logger.warning(f"quran surah {number} fetch failed: {e}")
         raise HTTPException(502, "Could not load this surah")
+
+
+# ─────────────────────────── Mushaf (page view) ───────────────────────────
+# The standard 604-page Madani Mushaf layout, with word-by-word glosses.
+# quran.com's API carries the real per-word line placement used in that
+# printed Mushaf (`line_number`, page-relative) plus a word-by-word English
+# translation and transliteration in the same call — alquran.cloud has
+# neither. Text is never re-derived here; it comes straight from the source.
+QURAN_COM = "https://api.quran.com/api/v4"
+TOTAL_MUSHAF_PAGES = 604
+_MUSHAF_CACHE: Dict[int, dict] = {}
+
+
+@router.get("/quran/mushaf/{page}")
+async def quran_mushaf_page(page: int):
+    """One Mushaf page: its lines, each a left-to-right list of words in the
+    order they're set on that printed line, each word carrying its own
+    translation + transliteration for a word-by-word reading."""
+    if page < 1 or page > TOTAL_MUSHAF_PAGES:
+        raise HTTPException(404, "Page not found (1-604)")
+    if page in _MUSHAF_CACHE:
+        return _MUSHAF_CACHE[page]
+    try:
+        r = requests.get(
+            f"{QURAN_COM}/verses/by_page/{page}",
+            params={
+                "words": "true",
+                "word_fields": "text_uthmani,line_number,char_type_name",
+                "fields": "text_uthmani",
+            },
+            timeout=15,
+        )
+        r.raise_for_status()
+        verses = r.json().get("verses", [])
+
+        lines: Dict[int, List[dict]] = {}
+        surah_numbers: List[int] = []
+        juz = None
+        for v in verses:
+            juz = v.get("juz_number", juz)
+            surah_num = int(v["verse_key"].split(":")[0])
+            if surah_num not in surah_numbers:
+                surah_numbers.append(surah_num)
+            for w in v.get("words", []):
+                ln = w.get("line_number")
+                if ln is None:
+                    continue
+                lines.setdefault(ln, []).append({
+                    "arabic": w.get("text_uthmani") or w.get("text"),
+                    "translation": (w.get("translation") or {}).get("text"),
+                    "transliteration": (w.get("transliteration") or {}).get("text"),
+                    "verse_key": v["verse_key"],
+                    "is_end": w.get("char_type_name") == "end",
+                })
+
+        surahs = await quran_surahs()
+        by_num = {s["number"]: s for s in surahs} if isinstance(surahs, list) else {}
+        out = {
+            "page": page,
+            "total_pages": TOTAL_MUSHAF_PAGES,
+            "juz": juz,
+            "surahs": [
+                {"number": n, "name": by_num[n]["name"], "englishName": by_num[n]["englishName"]}
+                for n in surah_numbers if n in by_num
+            ],
+            "lines": [{"line": k, "words": lines[k]} for k in sorted(lines.keys())],
+        }
+        _MUSHAF_CACHE[page] = out
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"mushaf page {page} fetch failed: {e}")
+        raise HTTPException(502, "Could not load this page")

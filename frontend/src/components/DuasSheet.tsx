@@ -135,7 +135,14 @@ export default function DuasSheetBody() {
             {active.duas.map((d, idx) => (
               <View key={d.id} style={styles.duaCard} testID={`dua-${d.id}`}>
                 <View style={styles.duaTopRow}>
-                  <Text style={styles.duaIndex}>{String(idx + 1).padStart(2, '0')}</Text>
+                  <View style={styles.duaTopLeft}>
+                    <Text style={styles.duaIndex}>{String(idx + 1).padStart(2, '0')}</Text>
+                    <View style={[styles.sourcePill, d.source === 'quran' && styles.sourcePillQuran]}>
+                      <Text style={[styles.sourcePillText, d.source === 'quran' && styles.sourcePillTextQuran]}>
+                        {d.source === 'quran' ? "QUR'AN" : 'SUNNAH'}
+                      </Text>
+                    </View>
+                  </View>
                   {d.count ? (
                     <View style={styles.countPill}><Text style={styles.countPillText}>× {d.count}</Text></View>
                   ) : null}
@@ -240,7 +247,17 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl, padding: Spacing.md + 2, marginBottom: Spacing.sm + 2,
   },
   duaTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
+  duaTopLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   duaIndex: { fontFamily: Fonts.label, fontSize: 10, letterSpacing: 1.6, color: Colors.textDim },
+  // Differentiates Qur'anic wording from Prophetic supplication — the same
+  // distinction classical collections (Hisn al-Muslim) make, not a cosmetic tag.
+  sourcePill: {
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: Radius.pill,
+    borderWidth: 1, borderColor: Colors.borderSubtle, backgroundColor: 'transparent',
+  },
+  sourcePillQuran: { borderColor: Colors.gold, backgroundColor: Colors.hover },
+  sourcePillText: { fontFamily: Fonts.label, fontSize: 8.5, letterSpacing: 1.2, color: Colors.textDim },
+  sourcePillTextQuran: { color: Colors.gold },
   countPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: Radius.pill, borderWidth: 1, borderColor: Colors.borderAccent },
   countPillText: { fontFamily: Fonts.bodyMedium, color: Colors.goldMuted, fontSize: 10, letterSpacing: 1.2 },
   duaAr: { fontFamily: Fonts.arabic, fontSize: 25, color: Colors.textPrimary, lineHeight: 48, textAlign: 'right' },

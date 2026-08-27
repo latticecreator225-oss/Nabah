@@ -11,6 +11,7 @@ import { logError } from '../log';
 import { useTextScale } from '../textScale';
 import { useI18n } from '../i18n';
 import { playAudio, stopAudio } from '../audio';
+import MushafView from './MushafView';
 import {
   PlayIcon, PauseIcon, BookmarkIcon, ShareIcon, SearchIcon, CheckIcon,
 } from './Icons';
@@ -51,6 +52,9 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
   const [script, setScript] = useState<ScriptStyle>('uthmani');
   const [reciter, setReciter] = useState<string>(DEFAULT_RECITER);
   const [reciters, setReciters] = useState<Reciter[]>([]);
+  // 'mushaf' = the real 604-page Madani layout with word-by-word meanings;
+  // a second way to read the same surah, not a replacement for the list.
+  const [readerMode, setReaderMode] = useState<'list' | 'mushaf'>('list');
 
   const userIdRef = useRef<string | null>(null);
   const listRef = useRef<FlatList<Ayah>>(null);
@@ -135,6 +139,7 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
     haptic();
     stopAudio();
     setPlayingAyah(null);
+    setReaderMode('list');
     setView('index');
   };
 
@@ -362,17 +367,42 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => { haptic(); setShowTranslit((s) => !s); }}
-          style={[styles.pillBtn, showTranslit && styles.pillBtnActive]}
-          testID="quran-translit-toggle"
+          onPress={() => {
+            haptic();
+            stopAudio();
+            setPlayingAyah(null);
+            setReaderMode((m) => (m === 'mushaf' ? 'list' : 'mushaf'));
+          }}
+          style={[styles.pillBtn, styles.mushafToggle, readerMode === 'mushaf' && styles.pillBtnActive]}
+          testID="quran-mushaf-toggle"
         >
-          <Text style={[styles.pillBtnText, showTranslit && { color: Colors.gold }]}>Aa</Text>
+          <Text style={[styles.mushafToggleText, readerMode === 'mushaf' && { color: Colors.gold }]}>
+            {readerMode === 'mushaf' ? 'List' : 'Mushaf'}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={togglePlayAll} style={styles.playAllBtn} testID="quran-play-all">
-          {playingAyah != null ? <PauseIcon size={16} color={Colors.bgPrimary} /> : <PlayIcon size={16} color={Colors.bgPrimary} />}
-        </TouchableOpacity>
+        {readerMode === 'list' && (
+          <>
+            <TouchableOpacity
+              onPress={() => { haptic(); setShowTranslit((s) => !s); }}
+              style={[styles.pillBtn, showTranslit && styles.pillBtnActive]}
+              testID="quran-translit-toggle"
+            >
+              <Text style={[styles.pillBtnText, showTranslit && { color: Colors.gold }]}>Aa</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={togglePlayAll} style={styles.playAllBtn} testID="quran-play-all">
+              {playingAyah != null ? <PauseIcon size={16} color={Colors.bgPrimary} /> : <PlayIcon size={16} color={Colors.bgPrimary} />}
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
+      {readerMode === 'mushaf' ? (
+        <MushafView
+          initialPage={detail?.ayahs?.[0]?.page ?? 1}
+          onBack={() => setReaderMode('list')}
+        />
+      ) : (
+      <>
       <View style={styles.scriptStrip}>
         <Text style={styles.scriptLabel}>{t.quranScript}</Text>
         <View style={styles.segmented}>
@@ -482,6 +512,8 @@ export default function QuranSheetBody({ active = true }: { active?: boolean }) 
           }}
         />
       )}
+      </>
+      )}
     </View>
   );
 }
@@ -546,6 +578,8 @@ const styles = StyleSheet.create({
   },
   pillBtnActive: { borderColor: Colors.gold, backgroundColor: Colors.hover },
   pillBtnText: { fontFamily: Fonts.displayBold, fontSize: 14, color: Colors.textSecondary },
+  mushafToggle: { width: 'auto', paddingHorizontal: Spacing.sm + 2 },
+  mushafToggleText: { fontFamily: Fonts.bodyMedium, fontSize: 12, color: Colors.textSecondary },
   playAllBtn: {
     width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.gold,
     alignItems: 'center', justifyContent: 'center',

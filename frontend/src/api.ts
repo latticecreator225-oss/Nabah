@@ -214,6 +214,23 @@ export type SurahDetail = {
 };
 export type Reciter = { id: string; name: string };
 
+// ── Mushaf (page view + word-by-word) ──
+export type MushafWord = {
+  arabic: string;
+  translation: string | null;
+  transliteration: string | null;
+  verse_key: string; // "2:255"
+  is_end: boolean; // the small ayah-number marker, not a real word
+};
+export type MushafLine = { line: number; words: MushafWord[] };
+export type MushafPage = {
+  page: number;
+  total_pages: number;
+  juz: number | null;
+  surahs: { number: number; name: string; englishName: string }[];
+  lines: MushafLine[];
+};
+
 // ── Duas ──
 export type DuaCategory = {
   id: string;
@@ -231,6 +248,7 @@ export type Dua = {
   reference: string;
   virtue?: string;
   count?: number;
+  source?: 'quran' | 'hadith';
 };
 export type DuaCategoryDetail = DuaCategory & { duas: Dua[] };
 
@@ -351,6 +369,8 @@ export const api = {
       `/quran/surah/${n}?translation=${translation}&script=${script}&reciter=${reciter}`,
       `cache:quran:surah:${n}:${translation}:${script}:${reciter}`,
     ),
+  mushafPage: (page: number) =>
+    cachedGet<MushafPage>(`/quran/mushaf/${page}`, `cache:quran:mushaf:${page}`),
 
   // ── Duas (cached, offline-friendly) ──
   duaCategories: () => cachedGet<DuaCategory[]>('/duas/categories', 'cache:duas:categories'),
