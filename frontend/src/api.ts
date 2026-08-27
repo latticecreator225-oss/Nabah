@@ -216,10 +216,9 @@ export type Reciter = { id: string; name: string };
 
 // ── Mushaf (page view + word-by-word) ──
 export type MushafScript = 'uthmani' | 'indopak';
-export type TajweedSegment = { text: string; rule: string | null };
 export type MushafWord = {
-  arabic: string;
-  tajweed: TajweedSegment[]; // Uthmani only — empty for indopak (no source data)
+  arabic: string; // plain shaped text — used for the tap-to-reveal word strip
+  glyph: string | null; // QCF v2 code point — render in `font_family` for pixel-perfect layout; Uthmani only
   translation: string | null;
   transliteration: string | null;
   verse_key: string; // "2:255"
@@ -232,6 +231,8 @@ export type MushafPage = {
   total_pages: number;
   juz: number | null;
   script: MushafScript;
+  font_url: string | null; // this page's QCF font (Uthmani only) — load, then render `glyph` in it
+  font_family: string | null;
   surahs: { number: number; name: string; englishName: string }[];
   lines: MushafLine[];
 };

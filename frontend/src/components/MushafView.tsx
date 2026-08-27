@@ -12,6 +12,7 @@ import {
   View, Text, StyleSheet, Dimensions, ActivityIndicator, Pressable, FlatList,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Font from 'expo-font';
 import { Platform } from 'react-native';
 import { Colors, Fonts, Spacing, Radius } from '../theme';
 import { api, MushafPage, MushafScript, MushafWord } from '../api';
@@ -21,27 +22,6 @@ import EnglishOnlyNotice from './EnglishOnlyNotice';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const TOTAL_PAGES = 604;
-
-// Tajweed rule → colour, tuned to Nabah's dark-luxury palette rather than the
-// primary-colour scheme printed Mushafs use (which reads as gaudy on black).
-// Rules are grouped by what they mean acoustically, so relatives share a hue.
-const TAJWEED_COLORS: Record<string, string> = {
-  ghunnah: '#E0A15C', // nasalisation — warm amber
-  ikhafa: '#E0A15C',
-  ikhafa_shafawi: '#E0A15C',
-  idgham_ghunnah: '#7FB88A', // merging (with ghunnah) — soft jade
-  idgham_shafawi: '#7FB88A',
-  idgham_wo_ghunnah: '#5F9E77', // merging (no ghunnah) — deeper jade
-  iqlab: '#6FA8C9', // conversion — dusty teal
-  qalaqah: '#C97A6D', // echo/bounce (API spelling of qalqalah) — muted rust
-  madda_necessary: '#C9A355', // elongation — gold family, darkest→lightest by length
-  madda_obligatory: '#D8B978',
-  madda_normal: '#E4CB9B',
-  madda_permissible: '#E4CB9B',
-  laam_shamsiyah: '#6B6558', // assimilated/silent letters — muted taupe
-  ham_wasl: '#6B6558',
-  slnt: '#6B6558',
-};
 
 type Props = {
   initialPage?: number;
@@ -167,16 +147,32 @@ function MushafPageCell({
 }) {
   const [data, setData] = useState<MushafPage | null>(null);
   const [error, setError] = useState(false);
+  const [fontReady, setFontReady] = useState(false);
   const ts = useTextScale();
 
   React.useEffect(() => {
     let cancelled = false;
     setData(null);
+    setFontReady(false);
     api.mushafPage(page, script)
       .then((d) => { if (!cancelled) setData(d); })
       .catch((e) => { if (!cancelled) { logError('mushaf.page', e); setError(true); } });
     return () => { cancelled = true; };
   }, [page, script]);
+
+  // Each printed page has its own font — a single glyph per word, pre-shaped
+  // by the King Fahd Complex's typesetters to reproduce that exact page.
+  // Loaded fonts persist for the app's lifetime (expo-font also disk-caches
+  // the download), so flipping back to an already-visited page is instant.
+  React.useEffect(() => {
+    if (!data || !data.font_url || !data.font_family) { setFontReady(true); return; }
+    let cancelled = false;
+    if (Font.isLoaded(data.font_family)) { setFontReady(true); return; }
+    Font.loadAsync({ [data.font_family]: data.font_url })
+      .then(() => { if (!cancelled) setFontReady(true); })
+      .catch((e) => { logError('mushaf.font', e); if (!cancelled) setFontReady(true); });
+    return () => { cancelled = true; };
+  }, [data]);
 
   if (error) {
     return (
@@ -185,7 +181,7 @@ function MushafPageCell({
       </View>
     );
   }
-  if (!data) {
+  if (!data || !fontReady) {
     return (
       <View style={[styles.page, { width }]}>
         <ActivityIndicator color={Colors.gold} />
@@ -224,26 +220,27 @@ function MushafPageCell({
                 </Text>
               ) : null}
               <Text style={[styles.mushafLine, ts.size(26, 52)]} allowFontScaling={false}>
-                {line.words.map((w, i) => (
-                  <Text
-                    key={i}
-                    onPress={() => onWordPress(w)}
-                    suppressHighlighting={false}
-                    style={w.is_end ? styles.ayahEnd : styles.word}
-                  >
-                    {script === 'uthmani' && w.tajweed.length > 0
-                      ? w.tajweed.map((seg, si) => (
-                          <Text
-                            key={si}
-                            style={seg.rule ? { color: TAJWEED_COLORS[seg.rule] || Colors.textPrimary } : undefined}
-                          >
-                            {seg.text}
-                          </Text>
-                        ))
-                      : w.arabic}
-                    {i < line.words.length - 1 ? ' ' : ''}
-                  </Text>
-                ))}
+                {line.words.map((w, i) => {
+                  const useGlyph = script === 'uthmani' && !!w.glyph;
+                  return (
+                    <Text
+                      key={i}
+                      onPress={() => onWordPress(w)}
+                      suppressHighlighting={false}
+                      style={[
+                        w.is_end ? styles.ayahEnd : styles.word,
+                        // The ayah-end marker's own glyph already carries its
+                        // ornamental proportions when it comes from the page
+                        // font — the fixed fallback size only applies to the
+                        // plain-text marker (Indo-Pak, or a missing glyph).
+                        useGlyph ? { fontFamily: data.font_family!, fontSize: undefined } : null,
+                      ]}
+                    >
+                      {useGlyph ? w.glyph : w.arabic}
+                      {i < line.words.length - 1 && !useGlyph ? ' ' : ''}
+                    </Text>
+                  );
+                })}
               </Text>
             </React.Fragment>
           );

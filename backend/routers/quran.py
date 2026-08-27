@@ -8,7 +8,6 @@ verse-by-verse recitation audio built directly from everyayah.com (chosen by
 Responses are cached in-process (the text never changes).
 """
 import asyncio
-import re
 from typing import Dict, List, Optional, Tuple
 
 import requests
@@ -287,62 +286,47 @@ async def quran_surah(
 
 
 # ─────────────────────────── Mushaf (page view) ───────────────────────────
-# The standard 604-page Madani Mushaf layout, with word-by-word glosses and
-# Tajweed colour-coding. quran.com's API carries the real per-word line
-# placement used in that printed Mushaf (`line_number`, page-relative), a
-# word-by-word English translation + transliteration, and Tajweed rule
-# markup on the Uthmani script (`text_uthmani_tajweed`, `<rule class=X>`
-# spans) — alquran.cloud (used by the list view) has none of this. The
-# Indo-Pak line breaks are NOT independently modelled here: `text_indopak`
-# renders in the *same* line/page grouping as the Uthmani text (that's the
-# only pagination quran.com exposes), so it won't match a physically printed
-# Indo-Pak Mushaf's exact line wraps, and it has no Tajweed data at all —
-# both are quran.com API limits, not something to fix by inventing our own
-# pagination. Text is never re-derived; it comes straight from the source.
+# The standard 604-page Madani Mushaf layout, reproduced pixel-for-pixel
+# rather than re-flowed. quran.com's API carries the real per-word line
+# placement used in the printed Mushaf (`line_number`, page-relative) plus a
+# `code_v2` glyph code per word — a single character in the King Fahd
+# Complex's QCF v2 font, where each *word* is one pre-shaped ligature glyph
+# designed by the Complex's typesetters to fill that exact line the way the
+# print page does. Rendering `code_v2` in that page's own font (one font
+# file per page, hosted by the Quran Foundation's own font CDN — NOT the
+# older `quran.com-images` GitHub mirror, whose fonts predate the `code_v2`
+# codepoint scheme and render as blank glyphs if paired with it) reproduces
+# the page as-is; no layout code of ours decides line breaks or spacing.
+# Word-by-word translation/transliteration still comes from the same
+# payload for the tap-to-reveal meaning overlay.
+# Tajweed colour-coding for these glyphs would need a color-font format
+# (COLRv1) that React Native's native text rendering doesn't reliably
+# support, so it isn't attempted here — see MushafView.tsx.
+# The Indo-Pak line breaks are NOT independently modelled: `text_indopak`
+# renders in the *same* line/page grouping as the Uthmani text (the only
+# pagination quran.com exposes for it), and it has no QCF glyph font, so it
+# stays plain shaped text rather than pixel-perfect print layout.
 QURAN_COM = "https://api.quran.com/api/v4"
 TOTAL_MUSHAF_PAGES = 604
 _MUSHAF_CACHE: Dict[Tuple[int, str], dict] = {}
 MUSHAF_SCRIPTS = {"uthmani", "indopak"}
-
-_TAJWEED_SPAN_RE = re.compile(r"<span[^>]*>(.*?)</span>")
-_TAJWEED_RULE_RE = re.compile(r"<(?:tajweed|rule) class=([a-z_]+)>(.*?)</(?:tajweed|rule)>")
+QCF_FONT_BASE = "https://verses.quran.foundation/fonts/quran/hafs/v2/ttf"
 
 
-def _parse_tajweed(marked: Optional[str]) -> List[dict]:
-    """`text_uthmani_tajweed` uses `<tajweed class=X>...</tajweed>` (verse
-    level) / `<rule class=X>...</rule>` (word level) spans around the letters
-    a Tajweed rule applies to. Splits it into plain-vs-ruled segments the
-    client can colour: `[{"text": "...", "rule": "ghunnah" | None}, ...]`.
-    """
-    if not marked:
-        return []
-    # The ayah-end number marker (`<span class=end>١</span>`) isn't a Tajweed
-    # rule — it's identified separately via char_type_name=="end" — so unwrap
-    # it to plain text rather than leaving the tag sitting in the output.
-    marked = _TAJWEED_SPAN_RE.sub(r"\1", marked)
-    segments: List[dict] = []
-    pos = 0
-    for m in _TAJWEED_RULE_RE.finditer(marked):
-        if m.start() > pos:
-            plain = marked[pos:m.start()]
-            if plain:
-                segments.append({"text": plain, "rule": None})
-        segments.append({"text": m.group(2), "rule": m.group(1)})
-        pos = m.end()
-    if pos < len(marked):
-        tail = marked[pos:]
-        if tail:
-            segments.append({"text": tail, "rule": None})
-    return segments
+def _qcf_font_url(page: int) -> str:
+    return f"{QCF_FONT_BASE}/p{page}.ttf"
 
 
 @router.get("/quran/mushaf/{page}")
 async def quran_mushaf_page(page: int, script: str = "uthmani"):
     """One Mushaf page: its lines, each a left-to-right list of words in the
     order they're set on that printed line, each word carrying its own
-    translation + transliteration for a word-by-word reading, plus Tajweed
-    segments when `script=uthmani`. `first_ayah` flags the word that opens a
-    new surah, so the client can draw a surah-header band + Bismillah there."""
+    translation + transliteration for a word-by-word reading. When
+    `script=uthmani`, each word also carries a `glyph` (QCF v2 code point)
+    to be rendered in that page's `font_url`/`font_family` for a pixel-
+    accurate reproduction of the print layout. `first_ayah` flags the word
+    that opens a new surah, so the client can draw a surah-header band +
+    Bismillah there."""
     if page < 1 or page > TOTAL_MUSHAF_PAGES:
         raise HTTPException(404, "Page not found (1-604)")
     if script not in MUSHAF_SCRIPTS:
@@ -352,7 +336,7 @@ async def quran_mushaf_page(page: int, script: str = "uthmani"):
         return _MUSHAF_CACHE[cache_key]
     try:
         word_fields = "line_number,char_type_name," + (
-            "text_uthmani,text_uthmani_tajweed" if script == "uthmani" else "text_indopak"
+            "text_uthmani,code_v2" if script == "uthmani" else "text_indopak"
         )
         r = requests.get(
             f"{QURAN_COM}/verses/by_page/{page}",
@@ -377,13 +361,13 @@ async def quran_mushaf_page(page: int, script: str = "uthmani"):
                     continue
                 if script == "uthmani":
                     arabic = w.get("text_uthmani") or w.get("text")
-                    tajweed = _parse_tajweed(w.get("text_uthmani_tajweed"))
+                    glyph = w.get("code_v2")
                 else:
                     arabic = w.get("text_indopak") or w.get("text")
-                    tajweed = []
+                    glyph = None
                 lines.setdefault(ln, []).append({
                     "arabic": arabic,
-                    "tajweed": tajweed,
+                    "glyph": glyph,
                     "translation": (w.get("translation") or {}).get("text"),
                     "transliteration": (w.get("transliteration") or {}).get("text"),
                     "verse_key": v["verse_key"],
@@ -398,6 +382,8 @@ async def quran_mushaf_page(page: int, script: str = "uthmani"):
             "total_pages": TOTAL_MUSHAF_PAGES,
             "juz": juz,
             "script": script,
+            "font_url": _qcf_font_url(page) if script == "uthmani" else None,
+            "font_family": f"qcf-p{page}" if script == "uthmani" else None,
             "surahs": [
                 {"number": n, "name": by_num[n]["name"], "englishName": by_num[n]["englishName"]}
                 for n in surah_numbers if n in by_num
