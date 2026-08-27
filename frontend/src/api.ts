@@ -249,6 +249,8 @@ export type Dua = {
   virtue?: string;
   count?: number;
   source?: 'quran' | 'hadith';
+  /** When to recite it — "Upon leaving home", "Before eating", etc. */
+  occasion?: string;
 };
 export type DuaCategoryDetail = DuaCategory & { duas: Dua[] };
 

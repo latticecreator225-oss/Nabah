@@ -134,6 +134,11 @@ export default function DuasSheetBody() {
             {active.blurb ? <Text style={styles.catBlurb}>{active.blurb}</Text> : null}
             {active.duas.map((d, idx) => (
               <View key={d.id} style={styles.duaCard} testID={`dua-${d.id}`}>
+                {d.occasion ? (
+                  <Text style={styles.duaOccasion} testID={`dua-occasion-${d.id}`}>
+                    {d.occasion.toUpperCase()}
+                  </Text>
+                ) : null}
                 <View style={styles.duaTopRow}>
                   <View style={styles.duaTopLeft}>
                     <Text style={styles.duaIndex}>{String(idx + 1).padStart(2, '0')}</Text>
@@ -245,6 +250,13 @@ const styles = StyleSheet.create({
   duaCard: {
     backgroundColor: Colors.card, borderWidth: 1, borderColor: Colors.borderSubtle,
     borderRadius: Radius.xl, padding: Spacing.md + 2, marginBottom: Spacing.sm + 2,
+  },
+  // The heading that answers "when do I say this?" — the whole point of
+  // differentiating the duas rather than leaving them under one broad
+  // category blurb. Deliberately the most prominent line on the card.
+  duaOccasion: {
+    fontFamily: Fonts.label, fontSize: 11, letterSpacing: 2, color: Colors.gold,
+    marginBottom: Spacing.sm,
   },
   duaTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
   duaTopLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
